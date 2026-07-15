@@ -1,0 +1,27 @@
+"""Engine adapters for audiosronnx.
+
+Importing this package auto-imports every built-in adapter so it self-registers in
+:data:`audiosronnx.base.ENGINE_REGISTRY`.
+"""
+
+from audiosronnx.base import (
+    ENGINE_REGISTRY,
+    EngineEntry,
+    SRModel,
+    available_models,
+    get_engine,
+    register_engine,
+)
+
+# Auto-import built-in engine adapters so they self-register.
+import audiosronnx.engines.lavasr  # noqa: F401,E402
+import audiosronnx.engines.novasr  # noqa: F401,E402
+
+__all__ = [
+    "SRModel",
+    "EngineEntry",
+    "ENGINE_REGISTRY",
+    "register_engine",
+    "get_engine",
+    "available_models",
+]

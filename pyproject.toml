@@ -1,0 +1,57 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "audiosronnx"
+dynamic = ["version"]
+description = "Pure-ONNX multi-engine audio super-resolution / bandwidth extension (upscale speech to 48 kHz)"
+license = {text = "Apache-2.0"}
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Topic :: Multimedia :: Sound/Audio :: Speech",
+    "Intended Audience :: Developers",
+]
+authors = [{name = "JarbasAi", email = "jarbasai@mailfence.com"}]
+readme = "README.md"
+requires-python = ">=3.10"
+keywords = [
+    "audio super resolution", "bandwidth extension", "speech enhancement",
+    "onnx", "upsampling", "lavasr", "novasr", "48khz",
+]
+dependencies = [
+    "numpy",
+    "onnxruntime>=1.17",
+    "huggingface_hub",
+    "scipy",
+    "soundfile",
+]
+
+[project.urls]
+Homepage = "https://github.com/TigreGotico/audiosronnx"
+Repository = "https://github.com/TigreGotico/audiosronnx"
+
+[project.scripts]
+audiosronnx = "audiosronnx.cli:main"
+
+[project.optional-dependencies]
+# test deps — NO heavy ML deps; unit tests run without downloading weights
+test = ["pytest", "pytest-cov"]
+# model conversion / publishing (maintainer only; needs torch + the upstream models)
+convert = ["torch", "onnx", "huggingface_hub", "vocos", "einops"]
+
+[tool.setuptools.dynamic]
+version = {attr = "audiosronnx.version.__version__"}
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["audiosronnx*"]
+
+[tool.setuptools.package-data]
+"audiosronnx" = ["data/*"]
