@@ -27,20 +27,33 @@ ONNX models are downloaded on first use from the Hugging Face Hub and cached und
 | Engine | Input SR | Output SR | Size | CPU speed | License | Status |
 |--------|----------|-----------|------|-----------|---------|--------|
 | **lavasr** (default) | 8–48 kHz | 48 kHz | ~52 MB | ~50× realtime | Apache-2.0 | shipped |
-| **novasr** | 16 kHz | 48 kHz | ~52 KB | ~1000× realtime | Apache-2.0 | shipped |
+| **novasr** | 16 kHz | 48 kHz | ~0.2 MB | ~1000× realtime | Apache-2.0 | shipped |
+| **hifiganbwe** | any | 48 kHz | ~4 MB | fast | MIT | shipped |
+| **apbwe** | any (12 kHz band) | 48 kHz | ~120 MB | moderate | MIT | shipped |
 
 - **lavasr** — a Vocos-based bandwidth-extension model with a Linkwitz-Riley spectral
   merge that preserves the original low band, plus an optional UL-UNAS denoiser. It
-  accepts any input rate from 8 to 48 kHz and is the best-quality engine. All spectral
-  DSP (STFT, ISTFT, mel filterbank, resampling, merge) runs in numpy/scipy, so no
-  `torch.stft` ever enters an ONNX graph.
+  accepts any input rate from 8 to 48 kHz. All spectral DSP (STFT, ISTFT, mel
+  filterbank, resampling, merge) runs in numpy/scipy, so no `torch.stft` ever enters an
+  ONNX graph.
 - **novasr** — a tiny conv1d / BigVGAN-snake generator that upsamples 16 kHz to 48 kHz
   in a single time-domain pass. Extremely fast and memory-light, at lower fidelity than
   lavasr; useful for on-device enhancement and quick dataset restoration.
+- **hifiganbwe** — HiFi-GAN+ (Su et al., ICASSP 2021): bandlimited (kaiser)
+  interpolation to 48 kHz followed by a non-causal WaveNet that reconstructs the high
+  band. Time-domain, ~1M params, no spectral front-end. Accepts any input rate.
+- **apbwe** — AP-BWE (Lu et al.): dual-ConvNeXt amplitude-and-phase prediction in the
+  STFT domain; the strongest log-spectral-distance accuracy of the shipped engines. The
+  packaged checkpoint is the 12 kHz→48 kHz model.
 
-Both engines are derived from the LavaSR/NovaSR projects by Yatharth Sharma
+lavasr/novasr derive from the LavaSR/NovaSR projects by Yatharth Sharma
 ([LavaSR](https://github.com/ysharma3501/LavaSR),
-[NovaSR](https://github.com/ysharma3501/NovaSR)), Apache-2.0.
+[NovaSR](https://github.com/ysharma3501/NovaSR), Apache-2.0); hifiganbwe from
+[brentspell/hifi-gan-bwe](https://github.com/brentspell/hifi-gan-bwe) (MIT); apbwe from
+[yxlu-0102/AP-BWE](https://github.com/yxlu-0102/AP-BWE) (MIT). Every neural component
+runs through onnxruntime with all STFT/ISTFT/resampling kept in numpy/scipy — the ONNX
+graphs are validated against the original PyTorch models (HiFi-GAN+ end-to-end
+correlation 1.0000, AP-BWE 0.9998, per-graph max error ≤ 5e-4).
 
 ## Quickstart
 
@@ -114,6 +127,8 @@ Exported ONNX weights are hosted on the Hugging Face Hub and pinned by revision:
 
 - `TigreGotico/audiosronnx-lavasr` — `backbone.onnx`, `spec_head.onnx`, `denoiser_core.onnx`
 - `TigreGotico/audiosronnx-novasr` — `novasr.onnx`
+- `TigreGotico/audiosronnx-hifiganbwe` — `hifiganbwe_wavenet.onnx`
+- `TigreGotico/audiosronnx-apbwe` — `apbwe.onnx`
 
 The export scripts under `conversion/` reproduce these from the upstream PyTorch
 checkpoints and validate each ONNX graph against its PyTorch submodule (max absolute
@@ -126,10 +141,9 @@ were evaluated and are **not** shipped, for the reasons given:
 
 | Model | License | Reason not shipped |
 |-------|---------|--------------------|
-| **AP-BWE** | MIT | Permissive and ONNX-friendly (convolutional amplitude/phase predictor; STFT stays outside the graph). A strong candidate not yet packaged here. |
-| **HiFi-GAN-BWE** | MIT | Permissive, time-domain, ships its own export script. A strong candidate not yet packaged here. |
 | **FLowHigh** | MIT | Single-step flow matching, but depends on an external BigVGAN vocoder plus a mel/STFT front-end — a multi-component export rather than one clean graph. |
 | **AudioSR** | MIT | ~6 GB latent-diffusion model (VAE + LDM + vocoder, iterative sampler, ~0.6× realtime on GPU). Not CPU-runnable at usable latency; impractical to export. |
+| **resemble-enhance** | MIT | Two-stage denoiser + conditional-flow-matching enhancer with an iterative ODE sampler and a separate vocoder, targeting 44.1 kHz. Heavy multi-graph diffusion-style pipeline, not a clean single-graph CPU export. |
 | **NU-Wave2** | none | Diffusion (iterative sampler) and the repository ships no license file. |
 | **mdctGAN** | unclear (NOASSERTION) | Unclear license, and its MDCT front-end relies on `torch.fft`, which exports to ONNX unreliably. |
 | **VoiceFixer / NVSR** | MIT | Speech *restoration* rather than pure bandwidth extension; two-stage mel-predictor + neural vocoder, heavier and less focused than the shipped engines. |

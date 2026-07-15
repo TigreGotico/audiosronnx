@@ -16,8 +16,13 @@ from audiosronnx import (
 
 def test_builtin_engines_registered():
     models = available_models()
-    assert "lavasr" in models
-    assert "novasr" in models
+    for name in ("lavasr", "novasr", "hifiganbwe", "apbwe"):
+        assert name in models
+
+
+def test_all_engines_output_48k():
+    for name in available_models():
+        assert get_engine(name).output_sample_rate == 48000
 
 
 def test_get_engine_returns_entry():

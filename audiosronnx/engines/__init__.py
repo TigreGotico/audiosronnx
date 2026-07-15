@@ -16,6 +16,8 @@ from audiosronnx.base import (
 # Auto-import built-in engine adapters so they self-register.
 import audiosronnx.engines.lavasr  # noqa: F401,E402
 import audiosronnx.engines.novasr  # noqa: F401,E402
+import audiosronnx.engines.hifiganbwe  # noqa: F401,E402
+import audiosronnx.engines.apbwe  # noqa: F401,E402
 
 __all__ = [
     "SRModel",

@@ -44,7 +44,7 @@ audiosronnx = "audiosronnx.cli:main"
 # test deps — NO heavy ML deps; unit tests run without downloading weights
 test = ["pytest", "pytest-cov"]
 # model conversion / publishing (maintainer only; needs torch + the upstream models)
-convert = ["torch", "onnx", "huggingface_hub", "vocos", "einops"]
+convert = ["torch", "torchaudio", "onnx", "huggingface_hub", "vocos", "einops", "gdown"]
 
 [tool.setuptools.dynamic]
 version = {attr = "audiosronnx.version.__version__"}
