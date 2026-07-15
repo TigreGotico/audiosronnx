@@ -143,7 +143,7 @@ were evaluated and are **not** shipped, for the reasons given:
 |-------|---------|--------------------|
 | **FLowHigh** | MIT | Single-step flow matching, but depends on an external BigVGAN vocoder plus a mel/STFT front-end — a multi-component export rather than one clean graph. |
 | **AudioSR** | MIT | ~6 GB latent-diffusion model (VAE + LDM + vocoder, iterative sampler, ~0.6× realtime on GPU). Not CPU-runnable at usable latency; impractical to export. |
-| **resemble-enhance** | MIT | Two-stage denoiser + conditional-flow-matching enhancer with an iterative ODE sampler and a separate vocoder, targeting 44.1 kHz. Heavy multi-graph diffusion-style pipeline, not a clean single-graph CPU export. |
+| **resemble-enhance** | MIT | Four-network 44.1 kHz restoration pipeline: UNet denoiser + IRMAE autoencoder + a CFM iterative ODE sampler (32–64 velocity-net evals per utterance) + a UnivNet vocoder. The vocoder is LVCNet — a *location-variable* convolution whose kernels are predicted per location and applied via `einsum` over `unfold`s, so it does not fold into a static ONNX graph. Speech restoration/denoising, not single-pass bandwidth extension (its hparams hard-assert 44.1 kHz). Same diffusion-style, multi-graph, dynamic-op class as AudioSR. |
 | **NU-Wave2** | none | Diffusion (iterative sampler) and the repository ships no license file. |
 | **mdctGAN** | unclear (NOASSERTION) | Unclear license, and its MDCT front-end relies on `torch.fft`, which exports to ONNX unreliably. |
 | **VoiceFixer / NVSR** | MIT | Speech *restoration* rather than pure bandwidth extension; two-stage mel-predictor + neural vocoder, heavier and less focused than the shipped engines. |
