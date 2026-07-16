@@ -38,7 +38,7 @@ class EngineEntry:
     """Registry entry describing one super-resolution engine adapter."""
 
     alias: str
-    adapter_class: "Type[SRModel]"
+    adapter_class: "Type"
     description: str = ""
     #: native input sample rate the model expects (Hz). ``0`` means flexible.
     input_sample_rate: int = 16000
@@ -47,6 +47,10 @@ class EngineEntry:
     license: str = ""
     #: pip extras key (empty when the base install already covers the engine).
     extras: str = ""
+    #: task family — ``"sr"`` (bandwidth-extension/super-resolution → 48 kHz),
+    #: ``"denoise"`` (noise removal, sample-rate preserving), or ``"enhance"``
+    #: (holistic restoration). ``load_sr`` / ``load_denoise`` filter on this.
+    kind: str = "sr"
 
 
 ENGINE_REGISTRY: Dict[str, EngineEntry] = {}
@@ -158,3 +162,68 @@ class SRModel(abc.ABC):
     def sample_rate(self) -> int:
         """Output sample rate in Hz."""
         return self.output_sample_rate
+
+
+class Denoiser(abc.ABC):
+    """Abstract base for per-engine denoise / enhance adapters.
+
+    Unlike :class:`SRModel`, a denoiser preserves the sample rate: it cleans the
+    signal rather than extending its band. Subclasses implement
+    :meth:`_denoise_array` — the pure numeric core that maps a mono float32 array
+    (already resampled to the model's native rate) to a cleaned array at that same
+    rate. The public :meth:`denoise` returns ``(out, rate)`` where ``rate`` is the
+    model's native rate; callers resample back to their target if they need to.
+    """
+
+    #: Native sample rate the model runs at (Hz); input is resampled to this.
+    input_sample_rate: int = 48000
+
+    def __init__(self, **cfg):
+        self._cfg = cfg
+
+    @abc.abstractmethod
+    def _denoise_array(self, audio: np.ndarray, sample_rate: int) -> np.ndarray:
+        """Denoise mono float32 ``audio`` at ``sample_rate`` -> array at the model rate."""
+
+    def denoise(
+        self, audio: AudioLike, sample_rate: Optional[int] = None
+    ) -> Tuple[np.ndarray, int]:
+        """Denoise audio. Returns ``(out, rate)`` at the model's native rate."""
+        if isinstance(audio, str):
+            x, sr = read_wav(audio)
+        else:
+            if sample_rate is None:
+                raise ValueError("sample_rate is required when audio is not a file path")
+            x, sr = to_float32_mono(audio), int(sample_rate)
+        if x.size == 0:
+            return np.zeros(0, dtype=np.float32), self.input_sample_rate
+        out = self._denoise_array(np.ascontiguousarray(x, dtype=np.float32), sr)
+        return np.ascontiguousarray(out, dtype=np.float32), self.input_sample_rate
+
+    def denoise_file(self, in_path: str, out_path: str) -> str:
+        """Denoise one audio file and write a 16-bit WAV. Returns ``out_path``."""
+        out, sr = self.denoise(in_path)
+        Path(out_path).parent.mkdir(parents=True, exist_ok=True)
+        write_wav(out_path, out, sr)
+        return out_path
+
+    def denoise_dir(
+        self, in_dir: str, out_dir: str, *, pattern: Optional[Tuple[str, ...]] = None
+    ) -> List[str]:
+        """Denoise every audio file in ``in_dir`` into ``out_dir`` (as ``.wav``)."""
+        exts = pattern or _AUDIO_EXTS
+        os.makedirs(out_dir, exist_ok=True)
+        written: List[str] = []
+        for name in sorted(os.listdir(in_dir)):
+            src = os.path.join(in_dir, name)
+            if not os.path.isfile(src) or os.path.splitext(name)[1].lower() not in exts:
+                continue
+            dst = os.path.join(out_dir, os.path.splitext(name)[0] + ".wav")
+            self.denoise_file(src, dst)
+            written.append(dst)
+        return written
+
+    @property
+    def sample_rate(self) -> int:
+        """Native sample rate in Hz."""
+        return self.input_sample_rate
