@@ -43,6 +43,9 @@ audiosronnx = "audiosronnx.cli:main"
 [project.optional-dependencies]
 # test deps — NO heavy ML deps; unit tests run without downloading weights
 test = ["pytest", "pytest-cov"]
+# DeepFilterNet3 denoiser: libdf supplies its STFT/ERB frontend + synthesis. A small Rust
+# wheel — no torch, so inference stays onnxruntime-only.
+deepfilternet = ["DeepFilterLib"]
 # model conversion / publishing (maintainer only; needs torch + the upstream models)
 convert = ["torch", "torchaudio", "onnx", "huggingface_hub", "vocos", "einops", "gdown"]
 

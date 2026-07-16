@@ -18,6 +18,7 @@ import audiosronnx.engines.lavasr  # noqa: F401,E402
 import audiosronnx.engines.novasr  # noqa: F401,E402
 import audiosronnx.engines.hifiganbwe  # noqa: F401,E402
 import audiosronnx.engines.apbwe  # noqa: F401,E402
+import audiosronnx.engines.deepfilternet  # noqa: F401,E402  (denoise)
 
 __all__ = [
     "SRModel",
