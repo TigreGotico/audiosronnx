@@ -74,3 +74,29 @@ be the same speech.
 **+9.15 dB SI-SDR.** Stage ablations: mask-only 0.9231, mask+DF 0.9533, mask+DF+`pad_feat`
 0.9697. The STFT round-trip is exact on its own (corr 0.9999, one hop of latency), so a
 regression here points at the mask or the filter, not the frontend.
+
+## Do not put this in front of ASR
+
+Denoising **degrades** recognition. Measured on 16 real Common Voice Arabic clips against
+their ground-truth sentences, corrupted with pink and babble noise at 0/5/10 dB and
+transcribed with the project's Arabic ASR:
+
+| noise | SNR | noisy WER | denoised WER |
+|---|---|---|---|
+| pink | 0 | 0.508 | **0.716** |
+| pink | 5 | 0.437 | 0.477 |
+| pink | 10 | 0.376 | 0.374 |
+| babble | 0 | 0.831 | 0.804 |
+| babble | 5 | 0.585 | 0.674 |
+| babble | 10 | 0.462 | 0.454 |
+
+Mean WER **0.533 → 0.583** (improved 19/96 conditions, worse 35/96); the loss is largest at
+low SNR, where help is most wanted. This is the expected trade — the model optimizes
+perceptual quality, and the artifacts it leaves cost a recognizer more than the noise it
+removes. The engine is correct (see the SI-SDR/ablation results above); the metric simply
+disagrees with the use case.
+
+So: use it for **perceptual** cleanup — reference clips for cloning, listening sets — and
+judge it by ear or speaker similarity. Keep it out of any path feeding ASR or a WER gate.
+(Caveat: the clean-audio baseline is already 0.242 WER, so the recognizer is weak on this
+material; the direction is solid, the magnitudes are soft.)
