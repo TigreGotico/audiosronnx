@@ -14,10 +14,11 @@ Quick start::
 Engines are downloaded on first use from Hugging Face Hub and cached under an XDG
 data directory. ``load_sr("novasr")`` selects the tiny fast engine instead.
 """
-from .api import load_sr
+from .api import load_sr, load_denoise, available_denoisers
 from .base import (
     ENGINE_REGISTRY,
     OUTPUT_SAMPLE_RATE,
+    Denoiser,
     EngineEntry,
     SRModel,
     available_models,
@@ -28,8 +29,11 @@ from .version import __version__
 
 __all__ = [
     "load_sr",
+    "load_denoise",
     "available_models",
+    "available_denoisers",
     "SRModel",
+    "Denoiser",
     "EngineEntry",
     "ENGINE_REGISTRY",
     "register_engine",
