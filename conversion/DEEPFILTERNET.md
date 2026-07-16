@@ -25,6 +25,30 @@ sr 48000 · fft 960 · hop 480 · nb_erb 32 · nb_df 96 · df_order 5 · df_look
    [T,5,96,2]→complex→transpose→[5,T,96]. Replace spec_m[:, :96] with the result.
 6. audio = ISTFT(spec_m)
 
+## Verified findings (debug round 2)
+
+- **`libdf` works WITHOUT torch** — the earlier segfaults were a torch/libdf ABI clash, not a
+  shape bug. `DF.analysis/synthesis/erb_widths/fft_window`, `erb`, `erb_norm`, `unit_norm`,
+  `erb_inv` all run clean in a torch-free venv. **So the adapter is libdf + onnxruntime +
+  numpy, zero torch** — exactly audiosronnx's ethos, and it does not segfault.
+- **Any torch co-loaded with libdf segfaults** (tried 2.4.1 and 2.1.0; the `deepfilterlib`
+  wheel is ABI-incompatible with installable torch here). Consequence: `df.enhance.enhance()`
+  cannot run on this box, so **bit-exact parity vs the torch reference is not available**.
+  Validate instead with real speech: noisy = clean + noise, require SNR improvement > 3 dB
+  and best-lag `corr(clean, denoised) > 0.9`.
+- **STFT round-trip verified**: `d.synthesis(d.analysis(x)) ≈ x`, corr **0.9999** at lag
+  **-480** (one hop of latency). Analysis/synthesis usage is correct; the bug is elsewhere.
+- **Config**: `norm_tau = 1.0` → `alpha = exp(-(hop/sr)/tau) = 0.99`.
+- **Current bug**: mask+deep-filter output scores `corr(clean, denoised) = 0.15` on real
+  speech (must be > 0.9). Noise floor drops correctly, but speech is destroyed too.
+- **Leading hypothesis (test first)**: `enc.onnx` expects features **padded by
+  `conv_lookahead` (=2)**. The model's forward does `feat_erb = self.pad_feat(feat_erb)` /
+  `feat_spec = self.pad_feat(feat_spec)` *before* `self.enc(...)`, and `pad_feat` is OUTSIDE
+  the exported `enc` graph. Feeding unpadded features misaligns every enc output, so the mask
+  and coefs land on the wrong frames. Fix: replicate `pad_feat` (see `deepfilternet3.py`
+  `__init__`/`forward`) before the enc call, then re-run the real-speech check. Isolate by
+  testing **mask-only** vs **mask+df** separately.
+
 ## Remaining blocker + the finish
 `conversion/deepfilternet_reference_wip.py` implements all of the above but SEGFAULTS in
 `libdf`'s analysis/synthesis FFI (opaque Rust boundary, array layout mismatch). Two finishes:
