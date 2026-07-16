@@ -33,7 +33,7 @@ from audiosronnx.base import Denoiser, EngineEntry, register_engine
 from audiosronnx.resolver import resolve
 
 _HF_REPO = "TigreGotico/audiosronnx-deepfilternet"
-_HF_REVISION: Optional[str] = None
+_HF_REVISION: Optional[str] = "9e9bbc9ca4a09fe53440e223abf06f879d91f876"
 _ENC, _ERB_DEC, _DF_DEC = "enc.onnx", "erb_dec.onnx", "df_dec.onnx"
 
 _SR = 48000
