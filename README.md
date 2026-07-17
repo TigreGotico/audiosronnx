@@ -30,6 +30,7 @@ ONNX models are downloaded on first use from the Hugging Face Hub and cached und
 | **novasr** | 16 kHz | 48 kHz | ~0.2 MB | ~1000× realtime | Apache-2.0 | shipped |
 | **hifiganbwe** | any | 48 kHz | ~4 MB | fast | MIT | shipped |
 | **apbwe** | any (12 kHz band) | 48 kHz | ~120 MB | moderate | MIT | shipped |
+| **sidon** | 16 kHz | 48 kHz | ~410 MB | ~0.6× realtime (CPU) | MIT | shipped |
 
 - **lavasr** — a Vocos-based bandwidth-extension model with a Linkwitz-Riley spectral
   merge that preserves the original low band, plus an optional UL-UNAS denoiser. It
@@ -45,12 +46,19 @@ ONNX models are downloaded on first use from the Hugging Face Hub and cached und
 - **apbwe** — AP-BWE (Lu et al.): dual-ConvNeXt amplitude-and-phase prediction in the
   STFT domain; the strongest log-spectral-distance accuracy of the shipped engines. The
   packaged checkpoint is the 12 kHz→48 kHz model.
+- **sidon** — Sidon (SARULab-Speech): full speech *restoration*, not just bandwidth
+  extension. An 8-layer w2v-BERT 2.0 feature predictor (LoRA-adapted to denoise SSL
+  representations) feeds a DAC vocoder that resynthesises clean 48 kHz audio from
+  degraded 16 kHz input. The SeamlessM4T log-mel front-end runs in numpy; the feature
+  extractor ships int8-quantized. It is the heaviest shipped engine — best on GPU, but
+  runs on CPU at roughly 0.6× realtime, which is fine for offline dataset cleansing.
 
 lavasr/novasr derive from the LavaSR/NovaSR projects by Yatharth Sharma
 ([LavaSR](https://github.com/ysharma3501/LavaSR),
 [NovaSR](https://github.com/ysharma3501/NovaSR), Apache-2.0); hifiganbwe from
 [brentspell/hifi-gan-bwe](https://github.com/brentspell/hifi-gan-bwe) (MIT); apbwe from
-[yxlu-0102/AP-BWE](https://github.com/yxlu-0102/AP-BWE) (MIT). Every neural component
+[yxlu-0102/AP-BWE](https://github.com/yxlu-0102/AP-BWE) (MIT); sidon from
+[sarulab-speech/Sidon](https://github.com/sarulab-speech/Sidon) (MIT). Every neural component
 runs through onnxruntime with all STFT/ISTFT/resampling kept in numpy/scipy — the ONNX
 graphs are validated against the original PyTorch models (HiFi-GAN+ end-to-end
 correlation 1.0000, AP-BWE 0.9998, per-graph max error ≤ 5e-4).
@@ -129,6 +137,7 @@ Exported ONNX weights are hosted on the Hugging Face Hub and pinned by revision:
 - `TigreGotico/audiosronnx-novasr` — `novasr.onnx`
 - `TigreGotico/audiosronnx-hifiganbwe` — `hifiganbwe_wavenet.onnx`
 - `TigreGotico/audiosronnx-apbwe` — `apbwe.onnx`
+- `TigreGotico/audiosronnx-sidon` — `feature_extractor.int8.onnx`, `decoder.onnx`
 
 The export scripts under `conversion/` reproduce these from the upstream PyTorch
 checkpoints and validate each ONNX graph against its PyTorch submodule (max absolute
