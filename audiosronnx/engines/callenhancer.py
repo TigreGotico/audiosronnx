@@ -56,6 +56,11 @@ _IN_SR = 16000
 _OUT_SR = 48000
 _RATIO = _OUT_SR // _IN_SR    # 3 — decoder upsamples 16 kHz input frames to 48 kHz
 _EDGE_PAD = 40                # per-segment edge pad fed to the mel front-end (upstream)
+#: minimum segment length (samples) fed to the front-end. The SeamlessM4T fbank frame is
+#: 400 samples, and below ~3 mel frames the per-bin CMVN (ddof=1 over time) divides by a
+#: near-zero variance and emits NaNs, so a very short clip is zero-padded up to this floor
+#: before featurisation (its output is trimmed back to the length contract afterwards).
+_MIN_SEG = 1200
 _IN_PEAK = 0.95              # input peak-normalisation target (upstream)
 _OUT_PEAK = 0.97            # output peak-normalisation target (upstream)
 _OVERLAP = 2 * _IN_SR        # 2 s window overlap when chunking
@@ -139,7 +144,10 @@ class CallEnhancerAdapter(SRModel):
 
     def _restore_segment(self, seg: np.ndarray) -> np.ndarray:
         """Run one 16 kHz segment through FE + decoder -> 48 kHz float32 waveform."""
-        feats = seamless_fbank(np.pad(seg, (_EDGE_PAD, _EDGE_PAD)))[None]  # [1,T,160]
+        seg = np.pad(seg, (_EDGE_PAD, _EDGE_PAD))
+        if seg.size < _MIN_SEG:  # too few mel frames -> unstable CMVN; pad up to a safe floor
+            seg = np.pad(seg, (0, _MIN_SEG - seg.size))
+        feats = seamless_fbank(seg)[None]  # [1,T,160]
         hidden = self._fe.run(None, {"input_features": feats.astype(np.float32)})[0]
         wav = self._dec.run(
             None, {"features": np.ascontiguousarray(hidden.transpose(0, 2, 1))})[0]
