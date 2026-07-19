@@ -4,12 +4,28 @@ The inference tests are skipped when the ONNX weights are unavailable (no networ
 pre-publish). CallEnhancer shares Sidon's numpy SeamlessM4T front-end, which is covered
 in ``test_e2e_sidon.py``; here the weight-free tests exercise the adapter's own segment
 bounds / chunking logic without any ONNX session.
+
+CallEnhancer's default fp32 feature extractor is ~2.3 GB and runs at well under realtime
+on CPU, so the weight-backed tests are skipped under CI — downloading and running them on
+four Python versions times the job out. They run locally, where the weights cache. The
+weight-free tests below still run everywhere.
 """
 from __future__ import annotations
 
+import os
+
 import numpy as np
+import pytest
 
 from audiosronnx.engines.callenhancer import CallEnhancerAdapter
+
+
+@pytest.fixture
+def load_engine(load_engine):
+    """Shadow the shared fixture to skip the heavy weight-backed tests under CI."""
+    if os.environ.get("CI"):
+        pytest.skip("callenhancer weights (~3 GB fp32) are too heavy to run in CI")
+    return load_engine
 
 
 # --------------------------------------------------------------------------- #
