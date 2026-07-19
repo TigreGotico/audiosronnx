@@ -43,9 +43,14 @@ from audiosronnx.engines.sidon import seamless_fbank
 from audiosronnx.resolver import resolve
 
 _HF_REPO = "TigreGotico/audiosronnx-callenhancer"
-_HF_REVISION: Optional[str] = None
-_FE = "feature_extractor.int8.onnx"
+_HF_REVISION: Optional[str] = "302682459d18c584710d162246e1b8265ab7f1cb"
 _DEC = "decoder.onnx"
+#: feature-extractor graph per precision. ``fp32`` is full-fidelity (weights ride in an
+#: external ``.onnx.data`` sidecar that is fetched alongside); ``int8`` is ~4x smaller but,
+#: on this 24-layer encoder, audibly lossy (~12 dB SNR vs fp32) — a size/speed trade, not
+#: free. See the README precision table.
+_FE_FILES = {"fp32": "feature_extractor.onnx", "int8": "feature_extractor.int8.onnx"}
+_DEFAULT_PRECISION = "fp32"
 
 _IN_SR = 16000
 _OUT_SR = 48000
@@ -70,6 +75,10 @@ class CallEnhancerAdapter(SRModel):
         length-invariant. A positive value windows the audio into ``chunk_seconds``-long
         segments with a 2 s crossfaded overlap, trading a little seam overhead for a much
         lower peak memory footprint on very long calls (w2v-BERT attention is O(T^2)).
+    precision:
+        Feature-extractor weight precision: ``"fp32"`` (default, full fidelity, ~2.3 GB)
+        or ``"int8"`` (~580 MB, ~4x smaller and faster but audibly lossy on this model —
+        ~12 dB SNR vs fp32). ``fe_path`` overrides this.
     """
 
     input_sample_rate = _IN_SR
@@ -84,14 +93,19 @@ class CallEnhancerAdapter(SRModel):
         fe_path: Optional[str] = None,
         decoder_path: Optional[str] = None,
         chunk_seconds: float = 0.0,
+        precision: str = _DEFAULT_PRECISION,
         **cfg,
     ):
         super().__init__(**cfg)
+        if precision not in _FE_FILES:
+            raise ValueError(
+                f"precision must be one of {sorted(_FE_FILES)}, got {precision!r}")
         self._providers = providers
         self._cache_dir = cache_dir
         self._revision = revision if revision is not None else _HF_REVISION
         self._fe_path = fe_path
         self._decoder_path = decoder_path
+        self._precision = precision
         self._chunk = max(0, int(round(float(chunk_seconds) * _IN_SR)))
         self._fe = None
         self._dec = None
@@ -105,13 +119,23 @@ class CallEnhancerAdapter(SRModel):
         opts.intra_op_num_threads = os.cpu_count() or 4
         providers = self._providers or ["CPUExecutionProvider"]
 
-        def _sess(explicit, name):
-            path = explicit or resolve(
+        def _fetch(name):
+            return resolve(
                 name, hf_repo=_HF_REPO, revision=self._revision, cache_dir=self._cache_dir)
+
+        def _sess(path):
             return ort.InferenceSession(path, sess_options=opts, providers=providers)
 
-        self._fe = _sess(self._fe_path, _FE)
-        self._dec = _sess(self._decoder_path, _DEC)
+        fe_name = _FE_FILES[self._precision]
+        fe_path = self._fe_path
+        if fe_path is None:
+            # fp32 weights live in an external ``.onnx.data`` sidecar; fetch it into the
+            # same cache dir first so onnxruntime finds it beside the graph.
+            if self._precision == "fp32":
+                _fetch(fe_name + ".data")
+            fe_path = _fetch(fe_name)
+        self._fe = _sess(fe_path)
+        self._dec = _sess(self._decoder_path or _fetch(_DEC))
 
     def _restore_segment(self, seg: np.ndarray) -> np.ndarray:
         """Run one 16 kHz segment through FE + decoder -> 48 kHz float32 waveform."""
@@ -178,8 +202,9 @@ register_engine(
         description=(
             "CallEnhancer call-centre speech restoration: full 24-layer w2v-BERT 2.0 "
             "feature predictor (LoRA-merged) + DAC vocoder, 16 kHz -> 48 kHz. SeamlessM4T "
-            "mel front-end in numpy, int8 feature extractor. ONNX from "
-            "TigreGotico/audiosronnx-callenhancer. (Scicom-intl, CC-BY-NC-4.0)"
+            "mel front-end in numpy; fp32 feature extractor by default (int8 available, "
+            "smaller but lossy). ONNX from TigreGotico/audiosronnx-callenhancer. "
+            "(Scicom-intl, CC-BY-NC-4.0)"
         ),
         input_sample_rate=_IN_SR,
         output_sample_rate=_OUT_SR,

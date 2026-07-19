@@ -38,6 +38,21 @@ def test_short_clip_is_single_pass_even_when_chunking():
     assert model._bounds(16000) == [(0, 16000)]
 
 
+def test_precision_defaults_to_fp32():
+    assert CallEnhancerAdapter()._precision == "fp32"
+
+
+def test_precision_int8_selectable():
+    assert CallEnhancerAdapter(precision="int8")._precision == "int8"
+
+
+def test_invalid_precision_rejected():
+    import pytest
+
+    with pytest.raises(ValueError):
+        CallEnhancerAdapter(precision="fp8")
+
+
 # --------------------------------------------------------------------------- #
 # Inference (weights) — skipped if unavailable.
 # --------------------------------------------------------------------------- #

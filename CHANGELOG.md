@@ -20,7 +20,9 @@ versioning driven by conventional commits.
   restoration: full 24-layer w2v-BERT 2.0 feature predictor (LoRA-merged) + 188M-param
   DAC vocoder, 8–16 kHz to 48 kHz. Reuses Sidon's numpy SeamlessM4T front-end; single
   length-invariant pass by default with an optional crossfaded windowing fallback for
-  very long calls. ONNX weights are CC-BY-NC-4.0.
+  very long calls. Ships both an fp32 feature extractor (default, full fidelity) and an
+  int8 one (`precision="int8"`, ~4x smaller but ~12 dB SNR lossy on this 24-layer model);
+  README documents the per-engine quantization trade-off. ONNX weights are CC-BY-NC-4.0.
 - Pure-numpy torch-faithful STFT/ISTFT (`_stft`) and kaiser resampler (`_kaiser`),
   keeping every spectral operation out of the ONNX graphs.
 - Maintainer export scripts under `conversion/` with per-graph and end-to-end parity

@@ -31,7 +31,7 @@ ONNX models are downloaded on first use from the Hugging Face Hub and cached und
 | **hifiganbwe** | any | 48 kHz | ~4 MB | fast | MIT | shipped |
 | **apbwe** | any (12 kHz band) | 48 kHz | ~120 MB | moderate | MIT | shipped |
 | **sidon** | 16 kHz | 48 kHz | ~410 MB | ~0.6× realtime (CPU) | MIT | shipped |
-| **callenhancer** | 8–16 kHz | 48 kHz | ~0.9 GB | ~0.2× realtime (CPU) | CC-BY-NC-4.0 | shipped |
+| **callenhancer** | 8–16 kHz | 48 kHz | ~3 GB fp32 / ~1.3 GB int8 | ~0.3–0.4× realtime (CPU) | CC-BY-NC-4.0 | shipped |
 
 - **lavasr** — a Vocos-based bandwidth-extension model with a Linkwitz-Riley spectral
   merge that preserves the original low band, plus an optional UL-UNAS denoiser. It
@@ -73,6 +73,31 @@ Every neural component
 runs through onnxruntime with all STFT/ISTFT/resampling kept in numpy/scipy — the ONNX
 graphs are validated against the original PyTorch models (HiFi-GAN+ end-to-end
 correlation 1.0000, AP-BWE 0.9998, per-graph max error ≤ 5e-4).
+
+## Precision (int8 quantization)
+
+The two transformer-based engines ship an int8-quantized feature extractor to keep the
+download and CPU footprint manageable. Quantization is **not free**, and how much it
+costs depends on the model — so pick precision per engine, not by reflex:
+
+| Engine | fp32 FE | int8 FE | int8 vs fp32 (end-to-end) | Default | Recommendation |
+|--------|---------|---------|---------------------------|---------|----------------|
+| **sidon** (8-layer FE) | — | ~410 MB | near-lossless | int8 | int8 — the shallow encoder quantizes cleanly |
+| **callenhancer** (24-layer FE) | ~2.3 GB | ~580 MB | corr 0.969, ~12 dB SNR (audible) | **fp32** | fp32 for fidelity; int8 only when size/speed matters more than quality |
+
+The deeper the encoder, the more per-layer int8 rounding error accumulates: Sidon's
+8-layer extractor stays effectively lossless, but CallEnhancer's full 24-layer w2v-BERT
+loses roughly 12 dB SNR end-to-end — enough to hear. So `callenhancer` defaults to the
+fp32 feature extractor (weights ride in an external `.onnx.data` sidecar, fetched
+automatically alongside the graph); pass `precision="int8"` to trade fidelity for a ~4×
+smaller, faster download:
+
+```python
+sr = load_sr("callenhancer")                    # fp32 FE (default, full fidelity)
+sr = load_sr("callenhancer", precision="int8")  # ~580 MB, faster, audibly lossy
+```
+
+Every decoder ships fp32 (the DAC vocoder is small and quantizes poorly).
 
 ## Quickstart
 

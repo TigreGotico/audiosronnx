@@ -125,6 +125,17 @@ def _export_feature_extractor(output_dir: Path) -> tuple[Path, float]:
         except TypeError:
             torch.onnx.export(fe, (dummy,), str(path), **kw)
     err = _parity(path, {"input_features": dummy}, lambda: fe(dummy))
+    # The fp32 graph exceeds the 2 GB protobuf limit, so torch scatters the weights across
+    # many sidecars. Consolidate to a clean 2-file layout (graph + one ``.onnx.data``) so
+    # the adapter can fetch the pair from HuggingFace.
+    import onnx
+
+    model = onnx.load(str(path))
+    for stale in path.parent.glob("*"):
+        if stale.suffix not in (".onnx",) and not stale.name.endswith(".onnx.data"):
+            stale.unlink()
+    onnx.save_model(model, str(path), save_as_external_data=True,
+                    all_tensors_to_one_file=True, location=path.name + ".data")
     return path, err
 
 
@@ -162,17 +173,27 @@ def _parity(path: Path, feeds: dict, torch_call) -> float:
 
 
 def _quantize(path: Path) -> Path:
-    """Dynamic int8 quantization of the (large) feature-extractor transformer."""
+    """Dynamic int8 quantization of the (large) feature-extractor transformer.
+
+    The fp32 w2v-BERT graph exceeds the 2 GB protobuf limit, so it is stored with the
+    weights as external data; both the shape-inference pre-pass and the quantizer must
+    round-trip through the external-data format to serialize it at all.
+    """
     from onnxruntime.quantization import QuantType, quantize_dynamic
     from onnxruntime.quantization.shape_inference import quant_pre_process
 
     pre = path.with_name("feature_extractor.preproc.onnx")
     out = path.with_name("feature_extractor.int8.onnx")
-    quant_pre_process(str(path), str(pre))
-    quantize_dynamic(str(pre), str(out), weight_type=QuantType.QInt8)
+    quant_pre_process(str(path), str(pre), save_as_external_data=True,
+                      all_tensors_to_one_file=True)
+    quantize_dynamic(str(pre), str(out), weight_type=QuantType.QInt8,
+                     use_external_data_format=True)
     pre.unlink(missing_ok=True)
-    print(f"{out.name}  {out.stat().st_size / 1e6:.1f} MB  "
-          f"(int8 from {path.stat().st_size / 1e6:.1f} MB)")
+    pre.with_suffix(".onnx.data").unlink(missing_ok=True)
+    ext = out.with_suffix(".onnx.data")
+    size = out.stat().st_size + (ext.stat().st_size if ext.exists() else 0)
+    print(f"{out.name}  {size / 1e6:.1f} MB  "
+          f"(int8 from {path.stat().st_size / 1e6:.1f} MB graph + external weights)")
     return out
 
 
