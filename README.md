@@ -74,6 +74,47 @@ runs through onnxruntime with all STFT/ISTFT/resampling kept in numpy/scipy — 
 graphs are validated against the original PyTorch models (HiFi-GAN+ end-to-end
 correlation 1.0000, AP-BWE 0.9998, per-graph max error ≤ 5e-4).
 
+## Denoising
+
+Bandwidth extension and **noise removal** are different jobs. The engines above *add* a
+high band; a denoiser *removes* background noise and leaves the sample rate alone. Those
+live behind a separate `load_denoise()` entry point and the `Denoiser` API:
+
+| Engine | Rate | Size | License | Notes |
+|--------|------|------|---------|-------|
+| **dpdfnet** (default) | 8 / 16 / **48 kHz** | 8.7–14.9 MB | Apache-2.0 | streaming, 8 variants, no extra deps |
+| **deepfilternet** | 48 kHz | ~2 MB | MIT | DeepFilterNet3; needs the `deepfilternet` extra (`libdf`) |
+
+```python
+from audiosronnx import load_denoise
+
+dn = load_denoise("dpdfnet")                    # 48 kHz fullband by default
+clean, rate = dn.denoise("noisy_call.wav")      # -> (float32 mono, 48000)
+
+dn.denoise_file("in.wav", "clean.wav")
+dn.denoise_dir("clips_in/", "clips_out/")
+
+load_denoise("dpdfnet", model="dpdfnet8")       # 16 kHz, highest quality
+load_denoise("dpdfnet", model="dpdfnet2_8khz")  # 8 kHz telephony
+load_denoise("dpdfnet", attn_limit_db=12)       # cap attenuation; keeps a natural floor
+```
+
+- **dpdfnet** — DPDFNet (Ceva), *Dual-Path RNN-based DeepFilterNet*, built on
+  DeepFilterNet2. The whole enhancement stage is one **stateful** ONNX graph consuming a
+  single STFT frame at a time, so only a Vorbis-windowed STFT/ISTFT runs outside it (in
+  numpy). That makes it dependency-free — unlike deepfilternet, it needs no `libdf` — and
+  it is the only shipped denoiser with 8 kHz and 16 kHz variants alongside 48 kHz. The
+  adapter reproduces the upstream reference implementation to max abs err **1.7e-8**
+  (correlation 1.000000). On real speech it recovers roughly **+6 dB SNR at 19 dB input
+  and +14 dB at 5 dB input**.
+- **deepfilternet** — DeepFilterNet3 (Schröter et al.): ERB-band gain mask followed by
+  *deep filtering* — a short complex FIR filter per low-frequency bin across neighbouring
+  frames. Runs as three ONNX graphs; its STFT/ERB analysis and synthesis come from the
+  `libdf` Rust wheel, so it needs the `deepfilternet` extra.
+
+`available_denoisers()` lists them; `load_sr()` and `load_denoise()` refuse each other's
+engines, so a bandwidth-extension model can't be loaded as a denoiser by mistake.
+
 ## Precision (int8 quantization)
 
 The two transformer-based engines ship an int8-quantized feature extractor to keep the
@@ -174,6 +215,9 @@ Exported ONNX weights are hosted on the Hugging Face Hub and pinned by revision:
 - `TigreGotico/audiosronnx-hifiganbwe` — `hifiganbwe_wavenet.onnx`
 - `TigreGotico/audiosronnx-apbwe` — `apbwe.onnx`
 - `TigreGotico/audiosronnx-sidon` — `feature_extractor.int8.onnx`, `decoder.onnx`
+- `TigreGotico/audiosronnx-callenhancer` — `feature_extractor.onnx` (+ `.data`), `feature_extractor.int8.onnx`, `decoder.onnx`
+- `TigreGotico/audiosronnx-dpdfnet` — `dpdfnet{2,4,8}.onnx`, `baseline.onnx`, 8 kHz / 48 kHz variants
+- `TigreGotico/audiosronnx-deepfilternet` — `enc.onnx`, `erb_dec.onnx`, `df_dec.onnx`
 
 The export scripts under `conversion/` reproduce these from the upstream PyTorch
 checkpoints and validate each ONNX graph against its PyTorch submodule (max absolute

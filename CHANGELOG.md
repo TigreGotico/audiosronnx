@@ -23,6 +23,13 @@ versioning driven by conventional commits.
   very long calls. Ships both an fp32 feature extractor (default, full fidelity) and an
   int8 one (`precision="int8"`, ~4x smaller but ~12 dB SNR lossy on this 24-layer model);
   README documents the per-engine quantization trade-off. ONNX weights are CC-BY-NC-4.0.
+- **deepfilternet** engine — DeepFilterNet3 denoiser (ERB gain mask + deep filtering),
+  48 kHz, behind the new `load_denoise()` / `Denoiser` API.
+- **dpdfnet** engine — DPDFNet (Ceva) streaming denoiser as a single stateful ONNX
+  graph, with 8 / 16 / 48 kHz variants and an `attn_limit_db` control. Needs no extra
+  dependencies; matches the upstream reference to 1.7e-8.
+- `_stft.stft`/`istft` accept an explicit analysis `window` (plus a `vorbis_window`
+  helper), so window choice is no longer hard-coded to Hann.
 - Pure-numpy torch-faithful STFT/ISTFT (`_stft`) and kaiser resampler (`_kaiser`),
   keeping every spectral operation out of the ONNX graphs.
 - Maintainer export scripts under `conversion/` with per-graph and end-to-end parity
