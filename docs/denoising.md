@@ -28,6 +28,30 @@ cannot be loaded as a denoiser by accident.
 | [mossformergan](#mossformergan) | 16 kHz | 17.7 MB | Apache-2.0 | highest published PESQ (3.47) |
 | [deepfilternet](#deepfilternet) | 48 kHz | ~2 MB | MIT | needs the `deepfilternet` extra |
 
+## Recommendations
+
+If you only read one line: **use `dpdfnet`**. It needs no optional dependencies, covers
+8/16/48 kHz, and is among the strongest measured here.
+
+| If you want… | Use | Why |
+|---|---|---|
+| a sensible default | **dpdfnet** | no extra deps, all three rates, top-tier measured gain |
+| the best fullband quality | **mossformer2** | strongest 48 kHz; keeps content above 8 kHz |
+| the best benchmark scores | **mossformergan** | highest published PESQ (3.47) |
+| the smallest footprint | **gtcrn** | 0.54 MB, 23.7 K params |
+| a small *spectral* model | **mpsenet** | 9.7 MB, predicts magnitude and phase in parallel |
+| a time-domain model | **metadenoiser** | the only waveform-domain option — fails differently |
+| to reproduce published results | **frcrn**, **cmgan**, **mpsenet (`vb`)** | these are the checkpoints those numbers came from |
+
+Engines are kept even when something else beats them, so a result can be reproduced or an
+architecture compared. `cmgan` is the clearest case: it is dominated on both PESQ and SNR by
+`gtcrn` at a fourteenth of the size, and it stays because a conformer metric-GAN is a
+distinct thing to be able to run.
+
+**Licensing is yours to judge.** `metadenoiser` is CC-BY-NC-4.0 and everything else here is
+MIT or Apache-2.0. The restriction covers the weights, not audio processed with them.
+`audiosronnx list` reports the license of every engine.
+
 ## Choosing
 
 **Start with `dpdfnet`.** It is the default, needs no optional dependencies, covers 8, 16

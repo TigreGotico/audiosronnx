@@ -57,6 +57,12 @@ mossformer2 +5.9 / +10.4 / +13.4, mpsenet +4.8 / +8.9 / +11.7, frcrn +4.6 / +8.8
 gtcrn +3.5 / +7.3 / +7.5. That is broadband Gaussian noise — a hostile synthetic case that
 ranks engines consistently but predicts little about babble or codec artefacts.
 
+**Recommendations:** start with **dpdfnet** — no extra dependencies, 8/16/48 kHz, top-tier
+measured gain. Take **mossformer2** for the best fullband quality, **mossformergan** for the
+best benchmark scores, **gtcrn** when footprint is the constraint, **metadenoiser** for a
+time-domain model. Engines are kept even when something else beats them, so published
+results stay reproducible — `cmgan` is dominated and stays for that reason.
+
 Full detail in [docs/denoising.md](docs/denoising.md).
 
 ## Bandwidth extension
