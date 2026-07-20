@@ -54,8 +54,9 @@ Not rejected — evaluated as viable and not yet integrated.
 | Model | License | State |
 |-------|---------|-------|
 | [MossFormerGAN_SE_16K](https://huggingface.co/alibabasglab/MossFormerGAN_SE_16K) | Apache-2.0 | The strongest reported PESQ (3.47) of any candidate surveyed. Blocked on an upstream checkpoint download that does not currently succeed. |
-| [LiSenNet](https://github.com/hyyan2k/LiSenNet) | MIT | 56 K parameters, in the same ultra-light class as `gtcrn`, with a third-party ONNX port already published. Would only earn a slot by beating `gtcrn` at a comparable size. |
-| [Fast-ULCNet](https://github.com/narrietal/Fast-ULCNet) | MIT | Low-complexity CNN + FastGRNN. Same class and same question as LiSenNet. |
+| [Fast-ULCNet](https://github.com/narrietal/Fast-ULCNet) | MIT | Low-complexity CNN + FastGRNN, in `gtcrn`'s size class. Not yet attempted. |
+| [VoiceFixer / NVSR](https://github.com/haoheliu/voicefixer) | MIT | ResUNet mel predictor plus a TFGAN vocoder — the same two-stage shape as `sidon`, so the old "multi-component" objection does not apply. Not yet attempted. |
+| [NU-Wave2](https://github.com/maum-ai/nuwave2) | BSD-3-Clause | Diffusion, but few-step; the sampler loop would run in numpy outside the graph as `flowhigh`'s does. Not yet attempted. |
 
 ## A note on "multi-component" as a reason
 
@@ -70,6 +71,36 @@ run in numpy outside the graph, exactly as the STFT does. The objection to Audio
 SGMSE is that tens of network evaluations per utterance is impractical on CPU, not that the
 graph cannot be produced.
 
+## Attempted and blocked
+
+Both of these were exported and measured rather than reasoned about.
+
+### LiSenNet — the published ONNX port does not reconstruct
+
+56 K parameters and under 300 KB, which would make it the smallest engine here, and the
+third-party ONNX port is MIT. The graph runs and its output looks plausible (it attenuates,
+median gain 0.39), but the full pipeline **destroys the signal**: −10.8 dB SNR at 11 dB
+input.
+
+That is not a porting error on this side. An adapter written to the port's own reference
+implementation reproduces that reference **exactly**, and the reference produces the same
+−10.8 dB. So the exported graph does not match the front-end its reference documents, and
+there is no upstream-validated export to check against. Revisit if an official export
+appears, or by exporting from the original PyTorch weights.
+
+### MossFormerGAN_SE_16K — length-specialised reshape
+
+Apache-2.0, 3.13 M parameters, and the strongest reported PESQ (3.47) of any candidate
+surveyed. Two obstacles were cleared: `torch.complex` (rewritten to the identical `atan2`)
+and `torch.eye(dtype=bool)`, which exports to `EyeLike(bool)` and has no onnxruntime
+implementation (rebuilt as an arange equality).
+
+What remains is structural: MossFormer's group attention reshapes the sequence into fixed
+groups, and that reshape captures the traced length — the graph runs at its trace size and
+fails elsewhere, even with constant folding disabled. Two ways forward: patch the chunking
+to stay dynamic, or export at a fixed length and window the input, which upstream's own
+decode already does with a 10 s window. Worth finishing given the quality on offer.
+
 ## Recurring export blockers
 
 Patterns worth checking before investing in a candidate:
@@ -82,3 +113,13 @@ Patterns worth checking before investing in a candidate:
   different matter and exports cleanly; `frcrn` ships on exactly that basis.
 - **Unlicensed weights** — a permissive code license does not cover a checkpoint published
   without terms.
+- **Runtime-constructed tensors** — `filter.expand(C, -1, -1)`, `torch.eye`, and similar
+  build a tensor from an input's shape at call time. The tracer then sees an operand of
+  unknown shape. Where the value is fixed per layer, materialising it as a buffer fixes the
+  export and is bit-for-bit equivalent.
+- **Unsupported ops with exact equivalents** — `torch.complex` has no ONNX operator, but
+  `angle(complex(re, im))` is `atan2(im, re)`. `EyeLike(bool)` has no onnxruntime kernel,
+  but an arange equality builds the same mask. These look like blockers and are not.
+- **Sequence-length specialisation** — separate from constant folding. Group/chunked
+  attention can capture the traced length in a reshape. Always sweep several lengths
+  against the PyTorch module rather than checking one.
