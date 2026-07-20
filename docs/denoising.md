@@ -26,6 +26,7 @@ cannot be loaded as a denoiser by accident.
 | [cmgan](#cmgan) | 16 kHz | 7.8 MB | MIT | conformer metric-GAN; PESQ over waveform fidelity |
 | [metadenoiser](#metadenoiser) | 16 kHz | 19–34 MB | **CC-BY-NC-4.0** | time-domain Demucs; non-commercial weights |
 | [mossformergan](#mossformergan) | 16 kHz | 17.7 MB | Apache-2.0 | highest published PESQ (3.47) |
+| [voicefixer](#voicefixer) | 44.1 kHz | 415 MB | MIT | general *restoration*, not denoising alone |
 | [deepfilternet](#deepfilternet) | 48 kHz | ~2 MB | MIT | needs the `deepfilternet` extra |
 
 ## Recommendations
@@ -42,6 +43,7 @@ If you only read one line: **use `dpdfnet`**. It needs no optional dependencies,
 | a small *spectral* model | **mpsenet** | 9.7 MB, predicts magnitude and phase in parallel |
 | a time-domain model | **metadenoiser** | the only waveform-domain option — fails differently |
 | to reproduce published results | **frcrn**, **cmgan**, **mpsenet (`vb`)** | these are the checkpoints those numbers came from |
+| a recording damaged several ways at once | **voicefixer** | restores noise, reverb, clipping and band loss together |
 
 Engines are kept even when something else beats them, so a result can be reproduced or an
 architecture compared. `cmgan` is the clearest case: it is dominated on both PESQ and SNR by
@@ -218,6 +220,27 @@ you care about.
 MossFormer's group attention captures the traced sequence length in a reshape, so the graph
 takes a fixed **401-frame** window (~2.5 s) and the adapter slides it with a crossfaded
 overlap. Upstream's own decode segments long audio for the same reason.
+
+## voicefixer
+
+VoiceFixer (Liu et al.): general speech **restoration** at 44.1 kHz. Where every other
+engine here targets one defect, this is trained to undo noise, reverberation, clipping and
+bandwidth loss *together* — reach for it when a recording is damaged in several ways and you
+do not want to chain three engines.
+
+Two stages, the same shape as `sidon`: a ResUNet predicts a clean log-mel, and a TFGAN
+vocoder resynthesises the waveform. The STFT, the mel projection and the log inverse run in
+numpy.
+
+It is **generative**: it resynthesises speech rather than filtering it, so the detail it
+restores is invented. Treat the output as enhanced-real — fine to listen to and reasonable
+as an acoustic-model target, but not a faithful recovery of what was there. That also means
+SNR against a clean reference is the wrong yardstick for it, which is why it is absent from
+the table above.
+
+At 415 MB across two graphs it is the heaviest engine in the library, and it works over a
+fixed 5 s window that the adapter slides. Verified against upstream on real speech at
+correlation 0.99999996.
 
 ## metadenoiser
 
