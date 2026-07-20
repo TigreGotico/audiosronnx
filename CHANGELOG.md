@@ -10,7 +10,12 @@ versioning driven by conventional commits.
 - `load_sr(engine=...)` facade over an `SRModel` ABC and an engine registry
   (`ENGINE_REGISTRY`, `register_engine`, `get_engine`, `available_models`).
 - HuggingFace / URL / local ONNX resolver with an XDG-based download cache.
-- CLI: `list`, `probe`, `upscale`, `upscale-dir`.
+- CLI: `list`, `probe`, `upscale`, `upscale-dir`, `denoise`, `denoise-dir`. `list`
+  groups engines by job; `upscale` takes `--precision`, `denoise` takes `--model`.
+- `docs/` covering engines, denoising, the API, the CLI, custom engines, conversion, and
+  the models evaluated but not shipped.
+- `examples/` with runnable scripts for upscaling, denoising, chaining the two, batch
+  directories, scoring every denoiser on your own audio, and registering an engine.
 - **lavasr** engine — Vocos-based bandwidth extension, any 8-48 kHz input to
   48 kHz, with an optional UL-UNAS denoiser and Linkwitz-Riley spectral merge.
 - **novasr** engine — tiny conv1d generator, 16 kHz to 48 kHz.
