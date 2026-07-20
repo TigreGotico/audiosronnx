@@ -43,6 +43,9 @@ versioning driven by conventional commits.
 - **mpsenet** engine — MP-SENet 16 kHz denoiser with parallel magnitude/phase prediction,
   in DNS and VoiceBank checkpoints via `model=`.
 - **cmgan** engine — CMGAN conformer metric-GAN denoiser, 16 kHz.
+- **voicefixer** engine — general 44.1 kHz speech restoration (noise, reverb, clipping and
+  bandwidth loss together) as a ResUNet mel predictor plus a TFGAN vocoder, over a fixed
+  5 s window. Registered as an `enhance` engine.
 - **mossformergan** engine — MossFormer attention with a metric-GAN objective, the
   highest published PESQ of the shipped denoisers, over a fixed 401-frame window.
 - **metadenoiser** engine — Meta's causal-Demucs waveform denoiser (dns64 / dns48), run

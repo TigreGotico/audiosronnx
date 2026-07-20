@@ -32,12 +32,11 @@ running tens of network evaluations per utterance, and/or a separate neural voco
 | [resemble-enhance](https://github.com/resemble-ai/resemble-enhance) | MIT | Four networks: UNet denoiser, IRMAE autoencoder, a CFM ODE sampler (32–64 evaluations per utterance), and a UnivNet vocoder. The vocoder is LVCNet, whose *location-variable* convolution kernels are predicted per position and applied via `einsum` over `unfold`s — this does not fold into a static graph. |
 | [SGMSE / SGMSE+](https://github.com/sp-uhh/sgmse) | MIT | Score-based diffusion in the complex STFT domain, requiring iterative reverse-diffusion steps. Its own 2025 streaming follow-up reaches real time only on a consumer GPU. |
 | [NU-Wave2](https://github.com/maum-ai/nuwave2) | BSD-3-Clause | Diffusion with an iterative sampler. The license is permissive; the sampler is the blocker. |
-| [VoiceFixer / NVSR](https://github.com/haoheliu/voicefixer) | MIT | Two-stage ResUNet mel predictor plus a TFGAN neural vocoder. Restoration rather than bandwidth extension, and a multi-graph export. |
 
-The `sidon` and `callenhancer` engines show the bar this rules out: both use an external
-vocoder, but a **DAC decoder that is a plain convolutional stack**, exportable as one
-graph. A vocoder is not disqualifying; a vocoder with dynamic, position-dependent kernels
-is.
+A neural vocoder is not disqualifying. `sidon` and `callenhancer` pair a predictor with a
+DAC decoder, `flowhigh` decodes through BigVGAN, and `voicefixer` through TFGAN — all
+exported and shipped. What disqualifies a vocoder is *dynamic, position-dependent kernels*,
+which is `resemble-enhance`'s LVCNet and nothing else on this list.
 
 ## Rejected: nothing to export
 
@@ -60,7 +59,6 @@ Not rejected — evaluated as viable and not yet integrated.
 
 | Model | License | State |
 |-------|---------|-------|
-| [VoiceFixer](https://github.com/haoheliu/voicefixer) | MIT | **Exports and verified.** A ResUNet mel predictor (282 MB) plus a TFGAN vocoder (133 MB), the same two-stage shape as `sidon`. On real speech the analysis stage matches torch at correlation 1.00000000 and the pair end-to-end at 0.99999996 (71.4 dB). Length-specialised, so it needs a fixed window like `mossformergan`. Remaining work is the 44.1 kHz numpy front-end, not the export. |
 
 ## A note on "multi-component" as a reason
 
