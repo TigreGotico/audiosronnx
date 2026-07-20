@@ -29,14 +29,16 @@ running tens of network evaluations per utterance, and/or a separate neural voco
 | Model | License | Blocker |
 |-------|---------|---------|
 | [AudioSR](https://github.com/haoheliu/versatile_audio_super_resolution) | MIT | ~6 GB latent diffusion (VAE + LDM + vocoder). Iterative sampler, ~0.6× realtime **on GPU**. |
-| [resemble-enhance](https://github.com/resemble-ai/resemble-enhance) | MIT | Four networks: UNet denoiser, IRMAE autoencoder, a CFM ODE sampler (32–64 evaluations per utterance), and a UnivNet vocoder. The vocoder is LVCNet, whose *location-variable* convolution kernels are predicted per position and applied via `einsum` over `unfold`s — this does not fold into a static graph. |
+| [resemble-enhance](https://github.com/resemble-ai/resemble-enhance) | MIT | Four networks: UNet denoiser, IRMAE autoencoder, a CFM ODE sampler, and a UnivNet vocoder. See below — the reason recorded here previously was wrong. |
 | [SGMSE / SGMSE+](https://github.com/sp-uhh/sgmse) | MIT | Score-based diffusion in the complex STFT domain, requiring iterative reverse-diffusion steps. Its own 2025 streaming follow-up reaches real time only on a consumer GPU. |
 | [NU-Wave2](https://github.com/maum-ai/nuwave2) | BSD-3-Clause | Diffusion with an iterative sampler. The license is permissive; the sampler is the blocker. |
 
 A neural vocoder is not disqualifying. `sidon` and `callenhancer` pair a predictor with a
 DAC decoder, `flowhigh` decodes through BigVGAN, and `voicefixer` through TFGAN — all
-exported and shipped. What disqualifies a vocoder is *dynamic, position-dependent kernels*,
-which is `resemble-enhance`'s LVCNet and nothing else on this list.
+exported and shipped.
+
+Nor, it turns out, is a *location-variable* one. See the LVCNet note below: no
+architectural objection on this list has survived being tested.
 
 ## Rejected: nothing to export
 
@@ -89,6 +91,23 @@ implementation reproduces that reference **exactly**, and the reference produces
 −10.8 dB. So the exported graph does not match the front-end its reference documents, and
 there is no upstream-validated export to check against. Revisit if an official export
 appears, or by exporting from the original PyTorch weights.
+
+### resemble-enhance — LVCNet is not the blocker it was recorded as
+
+This list long held that LVCNet, the UnivNet vocoder's *location-variable* convolution,
+"does not fold into a static graph" because its kernels are predicted per position and
+applied through `unfold` and `einsum`. Tested directly, that is **wrong**: the `unfold` and
+`einsum` path traces through cleanly — both have ONNX equivalents.
+
+Exporting an `LVCBlock` does fail, but on `"ONNX export of convolution for kernel of
+unknown shape"` — the **same pattern already solved for BigVGAN's alias-free resamplers**
+in the `flowhigh` engine, where a kernel built from an input's shape at call time is
+materialised as a buffer instead. It is a tracing artefact with a known fix, not an
+architectural limit.
+
+What remains genuinely large is the rest of the model: four networks including a CFM ODE
+sampler and an IRMAE autoencoder, at 44.1 kHz. That is a scope judgement, not an
+impossibility, and it should be recorded as such.
 
 ### NU-Wave2 — the transform is inside the model
 
