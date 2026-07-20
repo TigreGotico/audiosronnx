@@ -48,6 +48,7 @@ the extender reconstructs a high band out of the noise.
 | **mpsenet** | 16 kHz | 9.7 MB | MIT | you want a spectral model that stays small |
 | **gtcrn** | 16 kHz | **0.54 MB** | MIT | footprint is the binding constraint |
 | **cmgan** | 16 kHz | 7.8 MB | MIT | you want a conformer metric-GAN specifically |
+| **metadenoiser** | 16 kHz | 19–34 MB | **CC-BY-NC-4.0** | you want a time-domain model and NC is acceptable |
 | **deepfilternet** | 48 kHz | ~2 MB | MIT | you already depend on `libdf` |
 
 SNR recovered on one clip at 19 / 11 / 5 dB input SNR: dpdfnet **+4.9 / +10.3 / +13.7 dB**,

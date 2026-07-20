@@ -43,6 +43,8 @@ versioning driven by conventional commits.
 - **mpsenet** engine — MP-SENet 16 kHz denoiser with parallel magnitude/phase prediction,
   in DNS and VoiceBank checkpoints via `model=`.
 - **cmgan** engine — CMGAN conformer metric-GAN denoiser, 16 kHz.
+- **metadenoiser** engine — Meta's causal-Demucs waveform denoiser (dns64 / dns48), run
+  over a fixed 10 s window with a crossfaded slide. Weights are CC-BY-NC-4.0.
 - **flowhigh** engine — FLowHigh conditional flow-matching bandwidth extension to 48 kHz
   in 4 Euler steps, with a BigVGAN vocoder; `steps`, `seed` and `merge` controls.
 - `_stft.hamming_window` — periodic Hamming, distinct from the symmetric window Kaldi

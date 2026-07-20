@@ -10,12 +10,16 @@ The models below fail at least one. Each entry names which.
 
 | Model | License | Notes |
 |-------|---------|-------|
-| [facebookresearch/denoiser](https://github.com/facebookresearch/denoiser) (dns48/dns64) | **CC-BY-NC-4.0** | Architecturally an excellent fit — a causal Demucs-style waveform model, real-time on CPU by its authors' own measurements. Rejected purely on the non-commercial term. |
 | [mdctGAN](https://github.com/neoncloud/mdctGAN) | **NOASSERTION** | No resolvable license. Its MDCT front-end also relies on `torch.fft`, which exports unreliably. |
 
-`callenhancer` is the one CC-BY-NC engine that does ship. It is opt-in, its license is
-stated at every point of use, and the restriction covers the weights rather than audio
-processed with them.
+A restrictive license is **not** grounds for exclusion here — it is a labelling decision.
+`callenhancer` and `metadenoiser` both ship under CC-BY-NC-4.0, opt-in, with the license
+stated at every point of use and reported by `audiosronnx list`. The restriction covers the
+weights rather than audio processed with them; whether that is acceptable is the caller's
+call to make, not the library's.
+
+What remains disqualifying is weights published with **no declared terms at all**, since
+that leaves nothing to redistribute under.
 
 ## Rejected: iterative samplers and external vocoders
 
