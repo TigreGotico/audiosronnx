@@ -60,7 +60,6 @@ Not rejected — evaluated as viable and not yet integrated.
 
 | Model | License | State |
 |-------|---------|-------|
-| [VoiceFixer / NVSR](https://github.com/haoheliu/voicefixer) | MIT | ResUNet mel predictor plus a TFGAN vocoder — the same two-stage shape as `sidon`, so the old "multi-component" objection does not apply. Not yet attempted. |
 
 ## A note on "multi-component" as a reason
 
@@ -91,6 +90,22 @@ implementation reproduces that reference **exactly**, and the reference produces
 −10.8 dB. So the exported graph does not match the front-end its reference documents, and
 there is no upstream-validated export to check against. Revisit if an official export
 appears, or by exporting from the original PyTorch weights.
+
+### VoiceFixer — the analysis graph bakes in a traced input
+
+MIT, and structurally a good fit: a ResUNet mel predictor plus a TFGAN vocoder, the same
+two-stage shape as `sidon`. Both stages export, and the **vocoder is clean** — max abs err
+1.5e-05 against torch, at 133 MB.
+
+The analysis stage is not. Exported from `forward(sp, mel_orig)`, the resulting graph
+declares **only `mel_orig` as an input**: the tracer folded `sp` into a constant taken from
+the trace. Parity lands at **6.8e-02**, far above the 1e-03 this library accepts, and the
+error is consistent with a baked-in constant rather than rounding.
+
+Shipping it would mean a graph that silently computes against one recording's spectrogram
+for every input. Resolving it means establishing whether the generator genuinely consumes
+`sp` — and if it does, exporting so that it stays a live input. Like the others here it is
+also length-specialised, so it would need a fixed window regardless.
 
 ### NU-Wave2 — the transform is inside the model
 
@@ -137,3 +152,7 @@ Patterns worth checking before investing in a candidate:
 - **Export memory** — tracing attention at a long fixed window can simply run out of
   memory and die without a useful message. `mossformergan` failed silently at 1601 frames
   and exports comfortably at 401.
+- **Silently dropped inputs** — if an exported graph declares fewer inputs than the module
+  took, the tracer folded one into a constant. `voicefixer`'s analysis stage lost its `sp`
+  argument this way and still ran, just wrongly. Check the exported input list against the
+  signature, not only the parity number at the traced shape.
