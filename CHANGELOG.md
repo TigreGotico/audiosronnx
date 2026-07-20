@@ -33,6 +33,10 @@ versioning driven by conventional commits.
 - **frcrn** engine — FRCRN (ClearerVoice-Studio) 16 kHz complex-mask denoiser exported
   to a single waveform-to-waveform ONNX graph; matches the upstream pipeline to
   correlation 0.99999994.
+- **mossformer2** engine — MossFormer2 (ClearerVoice-Studio) 48 kHz fullband denoiser;
+  matches the upstream pipeline to correlation 0.99999999.
+- Kaldi-compatible log-mel filterbank and deltas in numpy (`_kaldi_fbank`), ported from
+  `torchaudio.compliance.kaldi` to within 3.2e-05.
 - `_stft.stft`/`istft` accept an explicit analysis `window` (plus a `vorbis_window`
   helper), so window choice is no longer hard-coded to Hann.
 - Pure-numpy torch-faithful STFT/ISTFT (`_stft`) and kaiser resampler (`_kaiser`),

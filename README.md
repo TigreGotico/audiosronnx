@@ -86,6 +86,7 @@ live behind a separate `load_denoise()` entry point and the `Denoiser` API:
 | **deepfilternet** | 48 kHz | ~2 MB | MIT | DeepFilterNet3; needs the `deepfilternet` extra (`libdf`) |
 | **gtcrn** | 16 kHz | **0.54 MB** | MIT | ultra-light (23.7 K params) — for embedded / on-device |
 | **frcrn** | 16 kHz | 57.5 MB | Apache-2.0 | highest benchmark scores (PESQ 3.23) |
+| **mossformer2** | **48 kHz** | 229 MB | Apache-2.0 | strongest fullband; 55M-param transformer |
 
 ```python
 from audiosronnx import load_denoise
@@ -123,6 +124,13 @@ load_denoise("dpdfnet", attn_limit_db=12)       # cap attenuation; keeps a natur
   operating point rather than a strict ordering. Unlike the other denoisers it is not a
   streaming graph: its `ConvSTFT`/`ConviSTFT` are Fourier-kernel convolutions, so the
   whole model exports as one waveform-to-waveform graph.
+- **mossformer2** — MossFormer2 (Alibaba / ClearerVoice-Studio): a 55M-parameter hybrid
+  transformer + recurrent mask predictor, and the strongest **fullband** denoiser here —
+  PESQ 3.16 / STOI 0.95 / SI-SDR 19.38 on VoiceBank+DEMAND, measuring ~+11 dB SNR gain at
+  11 dB input. Unlike frcrn and gtcrn it keeps everything above 8 kHz, so it is the one to
+  use when the source is genuinely wideband. The graph predicts a mask from 60 Kaldi mel
+  bins plus their first and second deltas; that front-end, the mask application and the
+  STFT/ISTFT all run in numpy. Heaviest denoiser at 229 MB.
 - **deepfilternet** — DeepFilterNet3 (Schröter et al.): ERB-band gain mask followed by
   *deep filtering* — a short complex FIR filter per low-frequency bin across neighbouring
   frames. Runs as three ONNX graphs; its STFT/ERB analysis and synthesis come from the
@@ -235,6 +243,7 @@ Exported ONNX weights are hosted on the Hugging Face Hub and pinned by revision:
 - `TigreGotico/audiosronnx-dpdfnet` — `dpdfnet{2,4,8}.onnx`, `baseline.onnx`, 8 kHz / 48 kHz variants
 - `TigreGotico/audiosronnx-gtcrn` — `gtcrn_simple.onnx`
 - `TigreGotico/audiosronnx-frcrn` — `frcrn.onnx`
+- `TigreGotico/audiosronnx-mossformer2` — `mossformer2_48k.onnx`
 - `TigreGotico/audiosronnx-deepfilternet` — `enc.onnx`, `erb_dec.onnx`, `df_dec.onnx`
 
 The export scripts under `conversion/` reproduce these from the upstream PyTorch
