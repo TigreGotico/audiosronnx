@@ -21,6 +21,10 @@ import audiosronnx.engines.apbwe  # noqa: F401,E402
 import audiosronnx.engines.sidon  # noqa: F401,E402
 import audiosronnx.engines.callenhancer  # noqa: F401,E402
 import audiosronnx.engines.deepfilternet  # noqa: F401,E402  (denoise)
+import audiosronnx.engines.dpdfnet  # noqa: F401,E402  (denoise)
+import audiosronnx.engines.gtcrn  # noqa: F401,E402  (denoise)
+import audiosronnx.engines.frcrn  # noqa: F401,E402  (denoise)
+import audiosronnx.engines.mossformer2  # noqa: F401,E402  (denoise)
 
 __all__ = [
     "SRModel",

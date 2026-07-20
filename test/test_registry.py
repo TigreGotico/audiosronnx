@@ -20,9 +20,20 @@ def test_builtin_engines_registered():
         assert name in models
 
 
-def test_all_engines_output_48k():
+def test_all_sr_engines_output_48k():
+    """Bandwidth extension always lands at 48 kHz — that is the point of the `sr` kind."""
     for name in available_models():
-        assert get_engine(name).output_sample_rate == 48000
+        entry = get_engine(name)
+        if entry.kind == "sr":
+            assert entry.output_sample_rate == 48000
+
+
+def test_denoise_engines_preserve_sample_rate():
+    """A denoiser cleans the signal; unlike an `sr` engine it must not change the rate."""
+    for name in available_models():
+        entry = get_engine(name)
+        if entry.kind in ("denoise", "enhance"):
+            assert entry.output_sample_rate == entry.input_sample_rate
 
 
 def test_get_engine_returns_entry():

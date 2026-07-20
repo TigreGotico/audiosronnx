@@ -17,7 +17,9 @@ from . import engines  # noqa: F401
 __all__ = ["load_sr", "load_denoise", "available_models", "available_denoisers"]
 
 DEFAULT_ENGINE = "lavasr"
-DEFAULT_DENOISER = "deepfilternet"
+# dpdfnet needs no optional dependencies, so a bare load_denoise() works on a base
+# install; deepfilternet would raise ImportError without the `deepfilternet` extra.
+DEFAULT_DENOISER = "dpdfnet"
 
 
 def load_sr(

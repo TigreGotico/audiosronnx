@@ -74,6 +74,71 @@ runs through onnxruntime with all STFT/ISTFT/resampling kept in numpy/scipy — 
 graphs are validated against the original PyTorch models (HiFi-GAN+ end-to-end
 correlation 1.0000, AP-BWE 0.9998, per-graph max error ≤ 5e-4).
 
+## Denoising
+
+Bandwidth extension and **noise removal** are different jobs. The engines above *add* a
+high band; a denoiser *removes* background noise and leaves the sample rate alone. Those
+live behind a separate `load_denoise()` entry point and the `Denoiser` API:
+
+| Engine | Rate | Size | License | Notes |
+|--------|------|------|---------|-------|
+| **dpdfnet** (default) | 8 / 16 / **48 kHz** | 8.7–14.9 MB | Apache-2.0 | streaming, 8 variants, no extra deps |
+| **deepfilternet** | 48 kHz | ~2 MB | MIT | DeepFilterNet3; needs the `deepfilternet` extra (`libdf`) |
+| **gtcrn** | 16 kHz | **0.54 MB** | MIT | ultra-light (23.7 K params) — for embedded / on-device |
+| **frcrn** | 16 kHz | 57.5 MB | Apache-2.0 | highest benchmark scores (PESQ 3.23) |
+| **mossformer2** | **48 kHz** | 229 MB | Apache-2.0 | strongest fullband; 55M-param transformer |
+
+```python
+from audiosronnx import load_denoise
+
+dn = load_denoise("dpdfnet")                    # 48 kHz fullband by default
+clean, rate = dn.denoise("noisy_call.wav")      # -> (float32 mono, 48000)
+
+dn.denoise_file("in.wav", "clean.wav")
+dn.denoise_dir("clips_in/", "clips_out/")
+
+load_denoise("dpdfnet", model="dpdfnet8")       # 16 kHz, highest quality
+load_denoise("dpdfnet", model="dpdfnet2_8khz")  # 8 kHz telephony
+load_denoise("dpdfnet", attn_limit_db=12)       # cap attenuation; keeps a natural floor
+```
+
+- **dpdfnet** — DPDFNet (Ceva), *Dual-Path RNN-based DeepFilterNet*, built on
+  DeepFilterNet2. The whole enhancement stage is one **stateful** ONNX graph consuming a
+  single STFT frame at a time, so only a Vorbis-windowed STFT/ISTFT runs outside it (in
+  numpy). That makes it dependency-free — unlike deepfilternet, it needs no `libdf` — and
+  it is the only shipped denoiser with 8 kHz and 16 kHz variants alongside 48 kHz. The
+  adapter reproduces the upstream reference implementation to max abs err **1.7e-8**
+  (correlation 1.000000). On real speech it recovers roughly **+6 dB SNR at 19 dB input
+  and +14 dB at 5 dB input**.
+- **gtcrn** — GTCRN (Rong et al.): an ultra-light 16 kHz denoiser at **23.7 K parameters
+  and 33 MMACs/s** — half a megabyte, the smallest engine here by two orders of magnitude.
+  Also a single stateful graph (three recurrent caches threaded per frame), with the ERB
+  filterbank and subband features inside the graph. It denoises less aggressively than
+  dpdfnet (~+7 dB SNR where dpdfnet gets ~+11 dB on the same clip) — the trade is size,
+  not quality parity. Use it when the footprint is the constraint.
+- **frcrn** — FRCRN (Alibaba / ClearerVoice-Studio): a complex-mask denoiser built from
+  two stacked UNets with frequency-recurrent layers. It has the strongest published
+  benchmark scores of the shipped denoisers — **PESQ 3.23 / STOI 0.95 / SI-SDR 19.22** on
+  VoiceBank+DEMAND, 2nd in the 2022 DNS Challenge — and measures ~+9 dB SNR gain on the
+  same clip where dpdfnet gets ~+11 dB, so treat the benchmark lead as a different
+  operating point rather than a strict ordering. Unlike the other denoisers it is not a
+  streaming graph: its `ConvSTFT`/`ConviSTFT` are Fourier-kernel convolutions, so the
+  whole model exports as one waveform-to-waveform graph.
+- **mossformer2** — MossFormer2 (Alibaba / ClearerVoice-Studio): a 55M-parameter hybrid
+  transformer + recurrent mask predictor, and the strongest **fullband** denoiser here —
+  PESQ 3.16 / STOI 0.95 / SI-SDR 19.38 on VoiceBank+DEMAND, measuring ~+11 dB SNR gain at
+  11 dB input. Unlike frcrn and gtcrn it keeps everything above 8 kHz, so it is the one to
+  use when the source is genuinely wideband. The graph predicts a mask from 60 Kaldi mel
+  bins plus their first and second deltas; that front-end, the mask application and the
+  STFT/ISTFT all run in numpy. Heaviest denoiser at 229 MB.
+- **deepfilternet** — DeepFilterNet3 (Schröter et al.): ERB-band gain mask followed by
+  *deep filtering* — a short complex FIR filter per low-frequency bin across neighbouring
+  frames. Runs as three ONNX graphs; its STFT/ERB analysis and synthesis come from the
+  `libdf` Rust wheel, so it needs the `deepfilternet` extra.
+
+`available_denoisers()` lists them; `load_sr()` and `load_denoise()` refuse each other's
+engines, so a bandwidth-extension model can't be loaded as a denoiser by mistake.
+
 ## Precision (int8 quantization)
 
 The two transformer-based engines ship an int8-quantized feature extractor to keep the
@@ -174,6 +239,12 @@ Exported ONNX weights are hosted on the Hugging Face Hub and pinned by revision:
 - `TigreGotico/audiosronnx-hifiganbwe` — `hifiganbwe_wavenet.onnx`
 - `TigreGotico/audiosronnx-apbwe` — `apbwe.onnx`
 - `TigreGotico/audiosronnx-sidon` — `feature_extractor.int8.onnx`, `decoder.onnx`
+- `TigreGotico/audiosronnx-callenhancer` — `feature_extractor.onnx` (+ `.data`), `feature_extractor.int8.onnx`, `decoder.onnx`
+- `TigreGotico/audiosronnx-dpdfnet` — `dpdfnet{2,4,8}.onnx`, `baseline.onnx`, 8 kHz / 48 kHz variants
+- `TigreGotico/audiosronnx-gtcrn` — `gtcrn_simple.onnx`
+- `TigreGotico/audiosronnx-frcrn` — `frcrn.onnx`
+- `TigreGotico/audiosronnx-mossformer2` — `mossformer2_48k.onnx`
+- `TigreGotico/audiosronnx-deepfilternet` — `enc.onnx`, `erb_dec.onnx`, `df_dec.onnx`
 
 The export scripts under `conversion/` reproduce these from the upstream PyTorch
 checkpoints and validate each ONNX graph against its PyTorch submodule (max absolute
