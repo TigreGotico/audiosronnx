@@ -167,7 +167,7 @@ register_engine(EngineEntry(
     description="DeepFilterNet3 speech denoiser (ERB mask + deep filtering), 48 kHz",
     input_sample_rate=_SR,
     output_sample_rate=_SR,
-    license="mit",
+    license="MIT",
     extras="deepfilternet",
     kind="denoise",
 ))
