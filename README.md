@@ -85,6 +85,41 @@ specifically, and its weights are non-commercial.
 
 Full detail in [docs/engines.md](docs/engines.md).
 
+## Choosing an engine
+
+Three questions settle it.
+
+**1. What is wrong with the audio?**
+
+| Problem | Reach for |
+|---------|-----------|
+| background noise | a **denoiser** — `dpdfnet` |
+| narrowband / muffled, but clean | a **bandwidth extender** — `lavasr` |
+| noisy *and* narrowband | denoise then extend — `dpdfnet` → `lavasr` |
+| telephony, codec-damaged | `callenhancer` (restoration, not extension) |
+| damaged several ways at once | `voicefixer` (restoration) |
+
+**2. What constrains you?**
+
+| Constraint | Denoise | Extend |
+|------------|---------|--------|
+| nothing in particular | `dpdfnet` | `lavasr` |
+| footprint | `gtcrn` (0.54 MB) | `novasr` (0.2 MB) |
+| best quality, fullband | `mossformer2` | `apbwe` |
+| best benchmark scores | `mossformergan` | — |
+| license must be permissive | anything but `metadenoiser` | anything but `callenhancer` |
+
+**3. Do you mind invented detail?**
+
+`sidon`, `callenhancer`, `flowhigh` and `voicefixer` are **generative** — they resynthesise
+speech rather than filter it, so the detail they add is plausible rather than recovered.
+That is fine for listening and reasonable as an acoustic-model target; it is not a faithful
+reconstruction, and SNR against a clean reference is the wrong yardstick for them.
+
+Engines are kept even when something else beats them, so published results stay
+reproducible and distinct architectures stay runnable. `cmgan` is the clearest example: it
+is dominated on both PESQ and SNR by `gtcrn` at a fourteenth of the size, and it stays.
+
 ## Documentation
 
 | Page | Contents |

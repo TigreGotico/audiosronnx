@@ -42,6 +42,7 @@ If you only read one line: **use `dpdfnet`**. It needs no optional dependencies,
 | the smallest footprint | **gtcrn** | 0.54 MB, 23.7 K params |
 | a small *spectral* model | **mpsenet** | 9.7 MB, predicts magnitude and phase in parallel |
 | a time-domain model | **metadenoiser** | the only waveform-domain option — fails differently |
+| several defects at once | **voicefixer** | restoration, not denoising: noise + reverb + clipping + band loss |
 | to reproduce published results | **frcrn**, **cmgan**, **mpsenet (`vb`)** | these are the checkpoints those numbers came from |
 | a recording damaged several ways at once | **voicefixer** | restores noise, reverb, clipping and band loss together |
 
