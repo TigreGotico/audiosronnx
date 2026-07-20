@@ -39,11 +39,14 @@ vocoder, but a **DAC decoder that is a plain convolutional stack**, exportable a
 graph. A vocoder is not disqualifying; a vocoder with dynamic, position-dependent kernels
 is.
 
-## Rejected: not an exportable graph
+## Rejected: nothing to export
 
 | Model | License | Blocker |
 |-------|---------|---------|
 | [RNNoise](https://github.com/xiph/rnnoise) | BSD-3-Clause | Ships as a hand-written C inference engine, not a trained graph in an exportable framework. Reproducing it would mean retraining an equivalent network. Useful as a reference architecture. |
+| [Fast-ULCNet](https://github.com/narrietal/Fast-ULCNet) | MIT | The repository publishes the **architecture only** — PyTorch and TensorFlow model definitions and a FastGRNN package, with no trained checkpoint anywhere in the tree. There is nothing to export without training it. |
+
+Neither is a licensing or tracing problem: in both cases no trained graph exists to convert.
 
 ## Rejected: superseded
 
@@ -57,9 +60,7 @@ Not rejected — evaluated as viable and not yet integrated.
 
 | Model | License | State |
 |-------|---------|-------|
-| [Fast-ULCNet](https://github.com/narrietal/Fast-ULCNet) | MIT | Low-complexity CNN + FastGRNN, in `gtcrn`'s size class. Not yet attempted. |
-| [VoiceFixer / NVSR](https://github.com/haoheliu/voicefixer) | MIT | ResUNet mel predictor plus a TFGAN vocoder — the same two-stage shape as `sidon`, so the old "multi-component" objection does not apply. Not yet attempted. |
-| [NU-Wave2](https://github.com/maum-ai/nuwave2) | BSD-3-Clause | Diffusion, but few-step; the sampler loop would run in numpy outside the graph as `flowhigh`'s does. Not yet attempted. |
+| [VoiceFixer](https://github.com/haoheliu/voicefixer) | MIT | **Exports and verified.** A ResUNet mel predictor (282 MB) plus a TFGAN vocoder (133 MB), the same two-stage shape as `sidon`. On real speech the analysis stage matches torch at correlation 1.00000000 and the pair end-to-end at 0.99999996 (71.4 dB). Length-specialised, so it needs a fixed window like `mossformergan`. Remaining work is the 44.1 kHz numpy front-end, not the export. |
 
 ## A note on "multi-component" as a reason
 
@@ -91,18 +92,21 @@ implementation reproduces that reference **exactly**, and the reference produces
 there is no upstream-validated export to check against. Revisit if an official export
 appears, or by exporting from the original PyTorch weights.
 
-### MossFormerGAN_SE_16K — length-specialised reshape
+### NU-Wave2 — the transform is inside the model
 
-Apache-2.0, 3.13 M parameters, and the strongest reported PESQ (3.47) of any candidate
-surveyed. Two obstacles were cleared: `torch.complex` (rewritten to the identical `atan2`)
-and `torch.eye(dtype=bool)`, which exports to `EyeLike(bool)` and has no onnxruntime
-implementation (rebuilt as an arange equality).
+BSD-3-Clause, 1.71 M parameters, and its diffusion sampler is not the problem: like
+`flowhigh`'s, that loop would run in numpy outside the graph.
 
-What remains is structural: MossFormer's group attention reshapes the sequence into fixed
-groups, and that reshape captures the traced length — the graph runs at its trace size and
-fails elsewhere, even with constant folding disabled. Two ways forward: patch the chunking
-to stay dynamic, or export at a fixed length and window the input, which upstream's own
-decode already does with a 10 s window. Worth finishing given the quality on offer.
+The weights load cleanly once two quirks are handled — the checkpoint carries a **double**
+`model.model.` key prefix, and it pickles training metadata (a Lightning callback, an
+omegaconf config) that must be stubbed rather than installed, since those pins clash with
+the torch present.
+
+What blocks it is structural: ``NuWave2.forward`` calls ``torch.stft`` and ``torch.istft``
+**inside the model**. That is the one thing this library deliberately keeps out of its
+graphs, and it is also what exports least reliably. Shipping it means splitting the model at
+the transform boundary so the graph takes a spectrogram and returns one — real
+restructuring rather than an operator rewrite, and the reason it is not done here yet.
 
 ## Recurring export blockers
 
@@ -124,5 +128,21 @@ Patterns worth checking before investing in a candidate:
   `angle(complex(re, im))` is `atan2(im, re)`. `EyeLike(bool)` has no onnxruntime kernel,
   but an arange equality builds the same mask. These look like blockers and are not.
 - **Sequence-length specialisation** — separate from constant folding. Group/chunked
-  attention can capture the traced length in a reshape. Always sweep several lengths
-  against the PyTorch module rather than checking one.
+  attention (`mossformergan`) and Python-computed padding (`metadenoiser`) both capture the
+  traced length. Always sweep several lengths against the PyTorch module rather than
+  checking one. Where it cannot be removed, export at a fixed window and slide it.
+- **The transform inside the model** — a model whose own ``forward`` calls ``torch.stft``
+  needs splitting at that boundary before it can export well. This is restructuring, not an
+  operator rewrite, and is what currently holds back NU-Wave2.
+- **Export memory** — tracing attention at a long fixed window can simply run out of
+  memory and die without a useful message. `mossformergan` failed silently at 1601 frames
+  and exports comfortably at 401.
+- **Dropped inputs are not always a bug** — an exported graph can declare fewer inputs than
+  the module took. `voicefixer`'s analysis stage loses its `sp` argument, and that is
+  correct: zeroing or scaling `sp` changes the module's output by exactly zero, so the
+  tracer was right to drop it. Verify by perturbing the argument before concluding
+  anything was baked in.
+- **Measure parity on real speech.** `voicefixer` reads 6.8e-02 on random noise and
+  2.3e-04 on speech — the same graph. Noise is out of domain for a speech model and drives
+  it into a regime where float error through a deep network amplifies. Judge relative
+  error and correlation, not an absolute figure against an unrepresentative input.
