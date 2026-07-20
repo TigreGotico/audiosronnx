@@ -48,12 +48,20 @@ the extender reconstructs a high band out of the noise.
 | **mpsenet** | 16 kHz | 9.7 MB | MIT | you want a spectral model that stays small |
 | **gtcrn** | 16 kHz | **0.54 MB** | MIT | footprint is the binding constraint |
 | **cmgan** | 16 kHz | 7.8 MB | MIT | you want a conformer metric-GAN specifically |
+| **metadenoiser** | 16 kHz | 19–34 MB | **CC-BY-NC-4.0** | you want a time-domain model and NC is acceptable |
+| **mossformergan** | 16 kHz | 17.7 MB | Apache-2.0 | highest published PESQ (3.47) |
 | **deepfilternet** | 48 kHz | ~2 MB | MIT | you already depend on `libdf` |
 
 SNR recovered on one clip at 19 / 11 / 5 dB input SNR: dpdfnet **+4.9 / +10.3 / +13.7 dB**,
 mossformer2 +5.9 / +10.4 / +13.4, mpsenet +4.8 / +8.9 / +11.7, frcrn +4.6 / +8.8 / +11.7,
 gtcrn +3.5 / +7.3 / +7.5. That is broadband Gaussian noise — a hostile synthetic case that
 ranks engines consistently but predicts little about babble or codec artefacts.
+
+**Recommendations:** start with **dpdfnet** — no extra dependencies, 8/16/48 kHz, top-tier
+measured gain. Take **mossformer2** for the best fullband quality, **mossformergan** for the
+best benchmark scores, **gtcrn** when footprint is the constraint, **metadenoiser** for a
+time-domain model. Engines are kept even when something else beats them, so published
+results stay reproducible — `cmgan` is dominated and stays for that reason.
 
 Full detail in [docs/denoising.md](docs/denoising.md).
 

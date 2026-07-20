@@ -24,7 +24,33 @@ cannot be loaded as a denoiser by accident.
 | [mpsenet](#mpsenet) | 16 kHz | 9.7 MB | MIT | parallel magnitude + phase |
 | [gtcrn](#gtcrn) | 16 kHz | **0.54 MB** | MIT | ultra-light, on-device |
 | [cmgan](#cmgan) | 16 kHz | 7.8 MB | MIT | conformer metric-GAN; PESQ over waveform fidelity |
+| [metadenoiser](#metadenoiser) | 16 kHz | 19–34 MB | **CC-BY-NC-4.0** | time-domain Demucs; non-commercial weights |
+| [mossformergan](#mossformergan) | 16 kHz | 17.7 MB | Apache-2.0 | highest published PESQ (3.47) |
 | [deepfilternet](#deepfilternet) | 48 kHz | ~2 MB | MIT | needs the `deepfilternet` extra |
+
+## Recommendations
+
+If you only read one line: **use `dpdfnet`**. It needs no optional dependencies, covers
+8/16/48 kHz, and is among the strongest measured here.
+
+| If you want… | Use | Why |
+|---|---|---|
+| a sensible default | **dpdfnet** | no extra deps, all three rates, top-tier measured gain |
+| the best fullband quality | **mossformer2** | strongest 48 kHz; keeps content above 8 kHz |
+| the best benchmark scores | **mossformergan** | highest published PESQ (3.47) |
+| the smallest footprint | **gtcrn** | 0.54 MB, 23.7 K params |
+| a small *spectral* model | **mpsenet** | 9.7 MB, predicts magnitude and phase in parallel |
+| a time-domain model | **metadenoiser** | the only waveform-domain option — fails differently |
+| to reproduce published results | **frcrn**, **cmgan**, **mpsenet (`vb`)** | these are the checkpoints those numbers came from |
+
+Engines are kept even when something else beats them, so a result can be reproduced or an
+architecture compared. `cmgan` is the clearest case: it is dominated on both PESQ and SNR by
+`gtcrn` at a fourteenth of the size, and it stays because a conformer metric-GAN is a
+distinct thing to be able to run.
+
+**Licensing is yours to judge.** `metadenoiser` is CC-BY-NC-4.0 and everything else here is
+MIT or Apache-2.0. The restriction covers the weights, not audio processed with them.
+`audiosronnx list` reports the license of every engine.
 
 ## Choosing
 
@@ -54,6 +80,8 @@ input SNRs against a fixed noise seed:
 | frcrn | +4.6 dB | +8.8 dB | +11.7 dB |
 | gtcrn | +3.5 dB | +7.3 dB | +7.5 dB |
 | cmgan | −7.7 dB | −1.5 dB | +3.5 dB |
+| metadenoiser (`dns64`) | +3.2 dB | +6.9 dB | +9.3 dB |
+| mossformergan | +2.6 dB | +8.3 dB | +11.6 dB |
 
 `dpdfnet` and `mossformer2` are close, trading places either side of ~11 dB input.
 `gtcrn` **saturates**: its gain stops scaling with noise level, which is the cost of
@@ -174,6 +202,42 @@ at 11 dB input it gains **+0.76 PESQ while losing 1.5 dB SNR**.
 Note the trade honestly — on this material `gtcrn` scores higher on **both** metrics at a
 fourteenth of the size. Reach for cmgan when you want a conformer/metric-GAN specifically,
 or are reproducing its published results; otherwise start elsewhere.
+
+## mossformergan
+
+MossFormerGAN (Alibaba / ClearerVoice-Studio): the MossFormer attention backbone with a
+metric-GAN objective, and the **highest published PESQ of any model surveyed for this
+library — 3.47** on VoiceBank+DEMAND. Like `cmgan` it predicts a masked magnitude plus an
+additive complex residual, so it corrects phase rather than reusing it — but unlike `cmgan`
+it also gains on waveform SNR.
+
+Note the gap between benchmark and measurement: it leads on PESQ, while `dpdfnet` and
+`mossformer2` recover more SNR on the clip measured above. Both are true; pick on the axis
+you care about.
+
+MossFormer's group attention captures the traced sequence length in a reshape, so the graph
+takes a fixed **401-frame** window (~2.5 s) and the adapter slides it with a crossfaded
+overlap. Upstream's own decode segments long audio for the same reason.
+
+## metadenoiser
+
+Meta's *denoiser* (Defossez et al.): a **causal Demucs** working directly on the waveform —
+a convolutional encoder/decoder around an LSTM bottleneck, with no spectral front-end. It
+is the only time-domain denoiser here; every other one masks or predicts a spectrum, which
+makes it a genuinely different failure mode to have available.
+
+```python
+load_denoise("metadenoiser")                  # dns64, 33.5M params
+load_denoise("metadenoiser", model="dns48")   # 18.9M, roughly half the size
+```
+
+**Its weights are CC-BY-NC-4.0** — research and non-commercial use only. That covers the
+model, not audio processed with it. Every other denoiser here is MIT or Apache-2.0, so
+choose this one deliberately.
+
+Demucs bakes its padding arithmetic into the trace, so the graphs take a fixed **10 s
+window** and the adapter slides that window with a crossfaded overlap. Reproduces upstream
+to correlation 1.00000000.
 
 ## deepfilternet
 
