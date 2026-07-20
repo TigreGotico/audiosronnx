@@ -29,7 +29,6 @@ running tens of network evaluations per utterance, and/or a separate neural voco
 | [SGMSE / SGMSE+](https://github.com/sp-uhh/sgmse) | MIT | Score-based diffusion in the complex STFT domain, requiring iterative reverse-diffusion steps. Its own 2025 streaming follow-up reaches real time only on a consumer GPU. |
 | [NU-Wave2](https://github.com/maum-ai/nuwave2) | BSD-3-Clause | Diffusion with an iterative sampler. The license is permissive; the sampler is the blocker. |
 | [VoiceFixer / NVSR](https://github.com/haoheliu/voicefixer) | MIT | Two-stage ResUNet mel predictor plus a TFGAN neural vocoder. Restoration rather than bandwidth extension, and a multi-graph export. |
-| [FLowHigh](https://github.com/jjunak-yun/FLowHigh_code) | MIT | Single-step flow matching, which avoids the sampler problem, but it depends on an external BigVGAN vocoder plus a mel/STFT front-end — a multi-component export rather than one graph. |
 
 The `sidon` and `callenhancer` engines show the bar this rules out: both use an external
 vocoder, but a **DAC decoder that is a plain convolutional stack**, exportable as one

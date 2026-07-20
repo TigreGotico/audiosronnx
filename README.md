@@ -63,6 +63,7 @@ Full detail in [docs/denoising.md](docs/denoising.md).
 |--------|-------|------|-----------|---------|
 | **lavasr** (default) | 8–48 kHz | ~52 MB | ~50× realtime | Apache-2.0 |
 | **novasr** | 16 kHz | ~0.2 MB | ~1000× realtime | Apache-2.0 |
+| **flowhigh** | any | ~200 MB | slow (4 ODE steps) | MIT |
 | **hifiganbwe** | any | ~4 MB | fast | MIT |
 | **apbwe** | any (12 kHz band) | ~120 MB | moderate | MIT |
 | **sidon** | 16 kHz | ~410 MB | ~0.6× realtime | MIT |
