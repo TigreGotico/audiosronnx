@@ -30,6 +30,9 @@ versioning driven by conventional commits.
   dependencies; matches the upstream reference to 1.7e-8.
 - **gtcrn** engine — ultra-light 16 kHz denoiser (23.7 K params, ~0.5 MB) as a single
   stateful ONNX graph, for embedded / on-device use.
+- **frcrn** engine — FRCRN (ClearerVoice-Studio) 16 kHz complex-mask denoiser exported
+  to a single waveform-to-waveform ONNX graph; matches the upstream pipeline to
+  correlation 0.99999994.
 - `_stft.stft`/`istft` accept an explicit analysis `window` (plus a `vorbis_window`
   helper), so window choice is no longer hard-coded to Hann.
 - Pure-numpy torch-faithful STFT/ISTFT (`_stft`) and kaiser resampler (`_kaiser`),

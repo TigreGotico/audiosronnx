@@ -85,6 +85,7 @@ live behind a separate `load_denoise()` entry point and the `Denoiser` API:
 | **dpdfnet** (default) | 8 / 16 / **48 kHz** | 8.7–14.9 MB | Apache-2.0 | streaming, 8 variants, no extra deps |
 | **deepfilternet** | 48 kHz | ~2 MB | MIT | DeepFilterNet3; needs the `deepfilternet` extra (`libdf`) |
 | **gtcrn** | 16 kHz | **0.54 MB** | MIT | ultra-light (23.7 K params) — for embedded / on-device |
+| **frcrn** | 16 kHz | 57.5 MB | Apache-2.0 | highest benchmark scores (PESQ 3.23) |
 
 ```python
 from audiosronnx import load_denoise
@@ -114,6 +115,14 @@ load_denoise("dpdfnet", attn_limit_db=12)       # cap attenuation; keeps a natur
   filterbank and subband features inside the graph. It denoises less aggressively than
   dpdfnet (~+7 dB SNR where dpdfnet gets ~+11 dB on the same clip) — the trade is size,
   not quality parity. Use it when the footprint is the constraint.
+- **frcrn** — FRCRN (Alibaba / ClearerVoice-Studio): a complex-mask denoiser built from
+  two stacked UNets with frequency-recurrent layers. It has the strongest published
+  benchmark scores of the shipped denoisers — **PESQ 3.23 / STOI 0.95 / SI-SDR 19.22** on
+  VoiceBank+DEMAND, 2nd in the 2022 DNS Challenge — and measures ~+9 dB SNR gain on the
+  same clip where dpdfnet gets ~+11 dB, so treat the benchmark lead as a different
+  operating point rather than a strict ordering. Unlike the other denoisers it is not a
+  streaming graph: its `ConvSTFT`/`ConviSTFT` are Fourier-kernel convolutions, so the
+  whole model exports as one waveform-to-waveform graph.
 - **deepfilternet** — DeepFilterNet3 (Schröter et al.): ERB-band gain mask followed by
   *deep filtering* — a short complex FIR filter per low-frequency bin across neighbouring
   frames. Runs as three ONNX graphs; its STFT/ERB analysis and synthesis come from the
@@ -225,6 +234,7 @@ Exported ONNX weights are hosted on the Hugging Face Hub and pinned by revision:
 - `TigreGotico/audiosronnx-callenhancer` — `feature_extractor.onnx` (+ `.data`), `feature_extractor.int8.onnx`, `decoder.onnx`
 - `TigreGotico/audiosronnx-dpdfnet` — `dpdfnet{2,4,8}.onnx`, `baseline.onnx`, 8 kHz / 48 kHz variants
 - `TigreGotico/audiosronnx-gtcrn` — `gtcrn_simple.onnx`
+- `TigreGotico/audiosronnx-frcrn` — `frcrn.onnx`
 - `TigreGotico/audiosronnx-deepfilternet` — `enc.onnx`, `erb_dec.onnx`, `df_dec.onnx`
 
 The export scripts under `conversion/` reproduce these from the upstream PyTorch
