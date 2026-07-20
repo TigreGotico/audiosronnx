@@ -31,6 +31,7 @@ ONNX models are downloaded on first use from the Hugging Face Hub and cached und
 | **hifiganbwe** | any | 48 kHz | ~4 MB | fast | MIT | shipped |
 | **apbwe** | any (12 kHz band) | 48 kHz | ~120 MB | moderate | MIT | shipped |
 | **sidon** | 16 kHz | 48 kHz | ~410 MB | ~0.6× realtime (CPU) | MIT | shipped |
+| **callenhancer** | 8–16 kHz | 48 kHz | ~3 GB fp32 / ~1.3 GB int8 | ~0.3–0.4× realtime (CPU) | CC-BY-NC-4.0 | shipped |
 
 - **lavasr** — a Vocos-based bandwidth-extension model with a Linkwitz-Riley spectral
   merge that preserves the original low band, plus an optional UL-UNAS denoiser. It
@@ -52,16 +53,51 @@ ONNX models are downloaded on first use from the Hugging Face Hub and cached und
   degraded 16 kHz input. The SeamlessM4T log-mel front-end runs in numpy; the feature
   extractor ships int8-quantized. It is the heaviest shipped engine — best on GPU, but
   runs on CPU at roughly 0.6× realtime, which is fine for offline dataset cleansing.
+- **callenhancer** — CallEnhancer (Scicom-intl): call-centre / telephony *restoration*.
+  Same two-graph shape as sidon but with the *full* 24-layer w2v-BERT 2.0 feature
+  predictor (LoRA-merged) driving a 188M-param DAC vocoder, tuned on narrowband, codec'd
+  call audio (G.711/GSM, 8–16 kHz). Heavier and slower than sidon, but the strongest
+  restoration of the shipped engines on real telephony. Runs a single length-invariant
+  pass by default (`chunk_seconds>0` windows very long calls with a crossfade). The ONNX
+  weights are **CC-BY-NC-4.0** (research / non-commercial) — the model itself, not audio
+  you restore with it.
 
 lavasr/novasr derive from the LavaSR/NovaSR projects by Yatharth Sharma
 ([LavaSR](https://github.com/ysharma3501/LavaSR),
 [NovaSR](https://github.com/ysharma3501/NovaSR), Apache-2.0); hifiganbwe from
 [brentspell/hifi-gan-bwe](https://github.com/brentspell/hifi-gan-bwe) (MIT); apbwe from
 [yxlu-0102/AP-BWE](https://github.com/yxlu-0102/AP-BWE) (MIT); sidon from
-[sarulab-speech/Sidon](https://github.com/sarulab-speech/Sidon) (MIT). Every neural component
+[sarulab-speech/Sidon](https://github.com/sarulab-speech/Sidon) (MIT); callenhancer from
+[Scicom-intl/CallEnhancer](https://huggingface.co/Scicom-intl/CallEnhancer) (CC-BY-NC-4.0).
+Every neural component
 runs through onnxruntime with all STFT/ISTFT/resampling kept in numpy/scipy — the ONNX
 graphs are validated against the original PyTorch models (HiFi-GAN+ end-to-end
 correlation 1.0000, AP-BWE 0.9998, per-graph max error ≤ 5e-4).
+
+## Precision (int8 quantization)
+
+The two transformer-based engines ship an int8-quantized feature extractor to keep the
+download and CPU footprint manageable. Quantization is **not free**, and how much it
+costs depends on the model — so pick precision per engine, not by reflex:
+
+| Engine | fp32 FE | int8 FE | int8 vs fp32 (end-to-end) | Default | Recommendation |
+|--------|---------|---------|---------------------------|---------|----------------|
+| **sidon** (8-layer FE) | — | ~410 MB | near-lossless | int8 | int8 — the shallow encoder quantizes cleanly |
+| **callenhancer** (24-layer FE) | ~2.3 GB | ~580 MB | corr 0.969, ~12 dB SNR (audible) | **fp32** | fp32 for fidelity; int8 only when size/speed matters more than quality |
+
+The deeper the encoder, the more per-layer int8 rounding error accumulates: Sidon's
+8-layer extractor stays effectively lossless, but CallEnhancer's full 24-layer w2v-BERT
+loses roughly 12 dB SNR end-to-end — enough to hear. So `callenhancer` defaults to the
+fp32 feature extractor (weights ride in an external `.onnx.data` sidecar, fetched
+automatically alongside the graph); pass `precision="int8"` to trade fidelity for a ~4×
+smaller, faster download:
+
+```python
+sr = load_sr("callenhancer")                    # fp32 FE (default, full fidelity)
+sr = load_sr("callenhancer", precision="int8")  # ~580 MB, faster, audibly lossy
+```
+
+Every decoder ships fp32 (the DAC vocoder is small and quantizes poorly).
 
 ## Quickstart
 

@@ -16,7 +16,7 @@ from audiosronnx import (
 
 def test_builtin_engines_registered():
     models = available_models()
-    for name in ("lavasr", "novasr", "hifiganbwe", "apbwe", "sidon"):
+    for name in ("lavasr", "novasr", "hifiganbwe", "apbwe", "sidon", "callenhancer"):
         assert name in models
 
 

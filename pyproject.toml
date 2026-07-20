@@ -23,7 +23,8 @@ readme = "README.md"
 requires-python = ">=3.10"
 keywords = [
     "audio super resolution", "bandwidth extension", "speech enhancement",
-    "speech restoration", "onnx", "upsampling", "lavasr", "novasr", "sidon", "48khz",
+    "speech restoration", "onnx", "upsampling", "lavasr", "novasr", "sidon",
+    "callenhancer", "telephony", "call centre", "48khz",
 ]
 dependencies = [
     "numpy",
@@ -47,7 +48,7 @@ test = ["pytest", "pytest-cov"]
 # wheel — no torch, so inference stays onnxruntime-only.
 deepfilternet = ["DeepFilterLib"]
 # model conversion / publishing (maintainer only; needs torch + the upstream models)
-convert = ["torch", "torchaudio", "onnx", "huggingface_hub", "vocos", "einops", "gdown", "transformers"]
+convert = ["torch", "torchaudio", "onnx", "huggingface_hub", "vocos", "einops", "gdown", "transformers", "descript-audio-codec"]
 
 [tool.setuptools.dynamic]
 version = {attr = "audiosronnx.version.__version__"}
