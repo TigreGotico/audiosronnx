@@ -28,6 +28,8 @@ versioning driven by conventional commits.
 - **dpdfnet** engine — DPDFNet (Ceva) streaming denoiser as a single stateful ONNX
   graph, with 8 / 16 / 48 kHz variants and an `attn_limit_db` control. Needs no extra
   dependencies; matches the upstream reference to 1.7e-8.
+- **gtcrn** engine — ultra-light 16 kHz denoiser (23.7 K params, ~0.5 MB) as a single
+  stateful ONNX graph, for embedded / on-device use.
 - `_stft.stft`/`istft` accept an explicit analysis `window` (plus a `vorbis_window`
   helper), so window choice is no longer hard-coded to Hann.
 - Pure-numpy torch-faithful STFT/ISTFT (`_stft`) and kaiser resampler (`_kaiser`),

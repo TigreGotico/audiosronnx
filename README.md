@@ -84,6 +84,7 @@ live behind a separate `load_denoise()` entry point and the `Denoiser` API:
 |--------|------|------|---------|-------|
 | **dpdfnet** (default) | 8 / 16 / **48 kHz** | 8.7–14.9 MB | Apache-2.0 | streaming, 8 variants, no extra deps |
 | **deepfilternet** | 48 kHz | ~2 MB | MIT | DeepFilterNet3; needs the `deepfilternet` extra (`libdf`) |
+| **gtcrn** | 16 kHz | **0.54 MB** | MIT | ultra-light (23.7 K params) — for embedded / on-device |
 
 ```python
 from audiosronnx import load_denoise
@@ -107,6 +108,12 @@ load_denoise("dpdfnet", attn_limit_db=12)       # cap attenuation; keeps a natur
   adapter reproduces the upstream reference implementation to max abs err **1.7e-8**
   (correlation 1.000000). On real speech it recovers roughly **+6 dB SNR at 19 dB input
   and +14 dB at 5 dB input**.
+- **gtcrn** — GTCRN (Rong et al.): an ultra-light 16 kHz denoiser at **23.7 K parameters
+  and 33 MMACs/s** — half a megabyte, the smallest engine here by two orders of magnitude.
+  Also a single stateful graph (three recurrent caches threaded per frame), with the ERB
+  filterbank and subband features inside the graph. It denoises less aggressively than
+  dpdfnet (~+7 dB SNR where dpdfnet gets ~+11 dB on the same clip) — the trade is size,
+  not quality parity. Use it when the footprint is the constraint.
 - **deepfilternet** — DeepFilterNet3 (Schröter et al.): ERB-band gain mask followed by
   *deep filtering* — a short complex FIR filter per low-frequency bin across neighbouring
   frames. Runs as three ONNX graphs; its STFT/ERB analysis and synthesis come from the
@@ -217,6 +224,7 @@ Exported ONNX weights are hosted on the Hugging Face Hub and pinned by revision:
 - `TigreGotico/audiosronnx-sidon` — `feature_extractor.int8.onnx`, `decoder.onnx`
 - `TigreGotico/audiosronnx-callenhancer` — `feature_extractor.onnx` (+ `.data`), `feature_extractor.int8.onnx`, `decoder.onnx`
 - `TigreGotico/audiosronnx-dpdfnet` — `dpdfnet{2,4,8}.onnx`, `baseline.onnx`, 8 kHz / 48 kHz variants
+- `TigreGotico/audiosronnx-gtcrn` — `gtcrn_simple.onnx`
 - `TigreGotico/audiosronnx-deepfilternet` — `enc.onnx`, `erb_dec.onnx`, `df_dec.onnx`
 
 The export scripts under `conversion/` reproduce these from the upstream PyTorch
