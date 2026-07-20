@@ -23,6 +23,7 @@ cannot be loaded as a denoiser by accident.
 | [frcrn](#frcrn) | 16 kHz | 57.5 MB | Apache-2.0 | highest published benchmark scores |
 | [mpsenet](#mpsenet) | 16 kHz | 9.7 MB | MIT | parallel magnitude + phase |
 | [gtcrn](#gtcrn) | 16 kHz | **0.54 MB** | MIT | ultra-light, on-device |
+| [cmgan](#cmgan) | 16 kHz | 7.8 MB | MIT | conformer metric-GAN; PESQ over waveform fidelity |
 | [deepfilternet](#deepfilternet) | 48 kHz | ~2 MB | MIT | needs the `deepfilternet` extra |
 
 ## Choosing
@@ -52,10 +53,26 @@ input SNRs against a fixed noise seed:
 | mpsenet (`dns`) | +4.8 dB | +8.9 dB | +11.7 dB |
 | frcrn | +4.6 dB | +8.8 dB | +11.7 dB |
 | gtcrn | +3.5 dB | +7.3 dB | +7.5 dB |
+| cmgan | −7.7 dB | −1.5 dB | +3.5 dB |
 
 `dpdfnet` and `mossformer2` are close, trading places either side of ~11 dB input.
 `gtcrn` **saturates**: its gain stops scaling with noise level, which is the cost of
-23.7 K parameters.
+23.7 K parameters. `cmgan` *loses* SNR on lightly-corrupted input, which is not a fault —
+see below.
+
+SNR is the wrong yardstick for every engine. Measured at 11 dB input, with PESQ alongside:
+
+| Engine | PESQ | ΔPESQ | ΔSNR |
+|--------|------|-------|------|
+| mpsenet | 2.64 | +1.47 | +8.9 dB |
+| frcrn | 2.46 | +1.29 | +8.8 dB |
+| mossformer2 | 2.41 | +0.94 | +10.4 dB |
+| gtcrn | 2.28 | +1.11 | +7.3 dB |
+| dpdfnet | 2.27 | +0.80 | +10.3 dB |
+| cmgan | 1.93 | +0.76 | −1.5 dB |
+
+`cmgan` is the clearest case of the two metrics disagreeing: it raises perceptual quality
+while moving the waveform *away* from the reference.
 
 Read these as one operating point, not a ranking. Broadband Gaussian noise is a
 deliberately hostile synthetic case and says little about speech babble, room noise or
@@ -143,6 +160,20 @@ inside the graph.
 
 It denoises less aggressively than dpdfnet. The trade is size, not quality parity; reach
 for it when footprint is the binding constraint.
+
+## cmgan
+
+CMGAN (Cao et al.): a conformer-based **metric GAN**. A dense encoder feeds four two-stage
+conformer blocks attending along time and frequency in turn; two decoders emit a magnitude
+mask plus a complex residual, so it corrects phase rather than reusing the noisy phase. At
+1.83 M parameters it is among the smallest engines here, and the only conformer one.
+
+Being a *metric* GAN it optimises PESQ, and that objective diverges from waveform fidelity:
+at 11 dB input it gains **+0.76 PESQ while losing 1.5 dB SNR**.
+
+Note the trade honestly — on this material `gtcrn` scores higher on **both** metrics at a
+fourteenth of the size. Reach for cmgan when you want a conformer/metric-GAN specifically,
+or are reproducing its published results; otherwise start elsewhere.
 
 ## deepfilternet
 

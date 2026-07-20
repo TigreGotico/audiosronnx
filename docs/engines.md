@@ -8,6 +8,7 @@ they merely extend the band or resynthesise the speech outright.
 |--------|-------|------|-----------|---------|
 | [lavasr](#lavasr) (default) | 8–48 kHz | ~52 MB | ~50× realtime | Apache-2.0 |
 | [novasr](#novasr) | 16 kHz | ~0.2 MB | ~1000× realtime | Apache-2.0 |
+| [flowhigh](#flowhigh) | any | ~200 MB | slow (4 ODE steps) | MIT |
 | [hifiganbwe](#hifiganbwe) | any | ~4 MB | fast | MIT |
 | [apbwe](#apbwe) | any (12 kHz band) | ~120 MB | moderate | MIT |
 | [sidon](#sidon) | 16 kHz | ~410 MB | ~0.6× realtime | MIT |
@@ -59,6 +60,31 @@ spectral front-end, accepts any input rate.
 AP-BWE (Lu et al.): dual-ConvNeXt amplitude-and-phase prediction in the STFT domain, and
 the strongest log-spectral-distance accuracy of these engines. The packaged checkpoint is
 the 12 kHz→48 kHz model.
+
+## flowhigh
+
+FLowHigh (Yun et al., ICASSP 2025): bandwidth extension by **conditional flow matching**.
+Instead of denoising over tens of diffusion steps it learns a velocity field and integrates
+it over four Euler steps, which is what makes a generative super-resolution model practical
+on CPU at all. A BigVGAN vocoder turns the resulting mel back into 48 kHz audio.
+
+```python
+sr = load_sr("flowhigh")
+sr = load_sr("flowhigh", steps=8)      # more Euler steps: more compute, more fidelity
+sr = load_sr("flowhigh", seed=None)    # upstream's non-reproducible sampling
+sr = load_sr("flowhigh", merge=False)  # return the vocoder output unmerged
+```
+
+- `steps` — Euler steps (default 4, upstream's setting). Cost scales linearly.
+- `seed` — the sampler starts from `mel(cond) + eps`. Upstream draws `eps` freshly each
+  run, so its output is not reproducible; this engine seeds it by default.
+- `merge` — keep the input's own low band and take only the reconstructed high band, the
+  same idea as lavasr's spectral merge. On by default.
+
+It is generative, so it *invents* the high band rather than estimating it: expect plausible
+detail rather than a faithful reconstruction, and treat the result as enhanced-real. Two
+graphs totalling ~200 MB and four network evaluations per utterance make it the slowest
+engine here — for offline work, not interactive use.
 
 ## sidon
 

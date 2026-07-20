@@ -32,6 +32,17 @@ def _resolve_window(window: np.ndarray | None, win_length: int, n_fft: int) -> n
     return win
 
 
+def hamming_window(win_length: int) -> np.ndarray:
+    """``torch.hamming_window(n)`` — **periodic** by default (divisor ``n``, not ``n-1``).
+
+    Distinct from the symmetric Hamming that Kaldi feature extraction uses
+    (:func:`audiosronnx._kaldi_fbank.hamming`); the two differ by ~5e-3, which is enough to
+    break perfect reconstruction and shift a model's input features.
+    """
+    n = np.arange(win_length, dtype=np.float64)
+    return 0.54 - 0.46 * np.cos(2.0 * np.pi * n / win_length)
+
+
 def vorbis_window(win_length: int) -> np.ndarray:
     """The Vorbis (MDCT/power-complementary) window used by DeepFilterNet-family models.
 

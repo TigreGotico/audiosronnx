@@ -47,6 +47,7 @@ the extender reconstructs a high band out of the noise.
 | **frcrn** | 16 kHz | 57.5 MB | Apache-2.0 | reproducing published benchmarks |
 | **mpsenet** | 16 kHz | 9.7 MB | MIT | you want a spectral model that stays small |
 | **gtcrn** | 16 kHz | **0.54 MB** | MIT | footprint is the binding constraint |
+| **cmgan** | 16 kHz | 7.8 MB | MIT | you want a conformer metric-GAN specifically |
 | **deepfilternet** | 48 kHz | ~2 MB | MIT | you already depend on `libdf` |
 
 SNR recovered on one clip at 19 / 11 / 5 dB input SNR: dpdfnet **+4.9 / +10.3 / +13.7 dB**,
@@ -62,6 +63,7 @@ Full detail in [docs/denoising.md](docs/denoising.md).
 |--------|-------|------|-----------|---------|
 | **lavasr** (default) | 8–48 kHz | ~52 MB | ~50× realtime | Apache-2.0 |
 | **novasr** | 16 kHz | ~0.2 MB | ~1000× realtime | Apache-2.0 |
+| **flowhigh** | any | ~200 MB | slow (4 ODE steps) | MIT |
 | **hifiganbwe** | any | ~4 MB | fast | MIT |
 | **apbwe** | any (12 kHz band) | ~120 MB | moderate | MIT |
 | **sidon** | 16 kHz | ~410 MB | ~0.6× realtime | MIT |
