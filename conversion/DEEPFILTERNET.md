@@ -100,3 +100,10 @@ So: use it for **perceptual** cleanup — reference clips for cloning, listening
 judge it by ear or speaker similarity. Keep it out of any path feeding ASR or a WER gate.
 (Caveat: the clean-audio baseline is already 0.242 WER, so the recognizer is weak on this
 material; the direction is solid, the magnitudes are soft.)
+
+**Band-pass does not fix it** (tested, same 96 conditions): an 80–7800 Hz Butterworth leaves
+WER unchanged on noisy audio (0.533 → 0.531, within noise) and does not recover the denoised
+penalty (0.583 → 0.593). It cannot: a recognizer that resamples to 16 kHz has already
+discarded everything outside that band, and MFCCs ignore sub-80 Hz — while the denoiser's
+artifacts sit *inside* the speech band, where deep filtering operates (the low 96 bins ≈
+0–4.8 kHz). There is no cheap filtering rescue; keep denoising out of ASR paths.
