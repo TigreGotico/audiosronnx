@@ -87,6 +87,7 @@ live behind a separate `load_denoise()` entry point and the `Denoiser` API:
 | **gtcrn** | 16 kHz | **0.54 MB** | MIT | ultra-light (23.7 K params) — for embedded / on-device |
 | **frcrn** | 16 kHz | 57.5 MB | Apache-2.0 | highest benchmark scores (PESQ 3.23) |
 | **mossformer2** | **48 kHz** | 229 MB | Apache-2.0 | strongest fullband; 55M-param transformer |
+| **mpsenet** | 16 kHz | 9.7 MB | MIT | parallel magnitude+phase; smallest full spectral model |
 
 ```python
 from audiosronnx import load_denoise
@@ -100,6 +101,7 @@ dn.denoise_dir("clips_in/", "clips_out/")
 load_denoise("dpdfnet", model="dpdfnet8")       # 16 kHz, highest quality
 load_denoise("dpdfnet", model="dpdfnet2_8khz")  # 8 kHz telephony
 load_denoise("dpdfnet", attn_limit_db=12)       # cap attenuation; keeps a natural floor
+load_denoise("mpsenet", model="vb")             # VoiceBank checkpoint instead of DNS
 ```
 
 - **dpdfnet** — DPDFNet (Ceva), *Dual-Path RNN-based DeepFilterNet*, built on
@@ -131,6 +133,13 @@ load_denoise("dpdfnet", attn_limit_db=12)       # cap attenuation; keeps a natur
   use when the source is genuinely wideband. The graph predicts a mask from 60 Kaldi mel
   bins plus their first and second deltas; that front-end, the mask application and the
   STFT/ISTFT all run in numpy. Heaviest denoiser at 229 MB.
+- **mpsenet** — MP-SENet (Lu et al., same authors as `apbwe`): predicts the **magnitude and
+  phase spectra in parallel** instead of masking magnitudes and reusing the noisy phase. At
+  2.26 M params / 9.7 MB it is the smallest full spectral model here. Two upstream
+  checkpoints ship and they are **not** interchangeable — on broadband noise the DNS
+  Challenge one recovers **+4.8 / +8.8 / +11.7 dB** (at 19 / 11 / 5 dB input) where the
+  VoiceBank+DEMAND one manages only +1.5 / +2.0 / +4.1 dB. `dns` is the default; pass
+  `model="vb"` to reproduce the published VoiceBank PESQ figures.
 - **deepfilternet** — DeepFilterNet3 (Schröter et al.): ERB-band gain mask followed by
   *deep filtering* — a short complex FIR filter per low-frequency bin across neighbouring
   frames. Runs as three ONNX graphs; its STFT/ERB analysis and synthesis come from the
@@ -244,6 +253,7 @@ Exported ONNX weights are hosted on the Hugging Face Hub and pinned by revision:
 - `TigreGotico/audiosronnx-gtcrn` — `gtcrn_simple.onnx`
 - `TigreGotico/audiosronnx-frcrn` — `frcrn.onnx`
 - `TigreGotico/audiosronnx-mossformer2` — `mossformer2_48k.onnx`
+- `TigreGotico/audiosronnx-mpsenet` — `mpsenet_dns.onnx`, `mpsenet.onnx`
 - `TigreGotico/audiosronnx-deepfilternet` — `enc.onnx`, `erb_dec.onnx`, `df_dec.onnx`
 
 The export scripts under `conversion/` reproduce these from the upstream PyTorch

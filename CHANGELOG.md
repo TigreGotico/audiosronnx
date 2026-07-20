@@ -35,6 +35,8 @@ versioning driven by conventional commits.
   correlation 0.99999994.
 - **mossformer2** engine — MossFormer2 (ClearerVoice-Studio) 48 kHz fullband denoiser;
   matches the upstream pipeline to correlation 0.99999999.
+- **mpsenet** engine — MP-SENet 16 kHz denoiser with parallel magnitude/phase prediction,
+  in DNS and VoiceBank checkpoints via `model=`.
 - Kaldi-compatible log-mel filterbank and deltas in numpy (`_kaldi_fbank`), ported from
   `torchaudio.compliance.kaldi` to within 3.2e-05.
 - `_stft.stft`/`istft` accept an explicit analysis `window` (plus a `vorbis_window`
