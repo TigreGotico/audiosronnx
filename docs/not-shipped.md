@@ -57,7 +57,6 @@ Not rejected — evaluated as viable and not yet integrated.
 
 | Model | License | State |
 |-------|---------|-------|
-| [MossFormerGAN_SE_16K](https://huggingface.co/alibabasglab/MossFormerGAN_SE_16K) | Apache-2.0 | The strongest reported PESQ (3.47) of any candidate surveyed. Blocked on an upstream checkpoint download that does not currently succeed. |
 | [Fast-ULCNet](https://github.com/narrietal/Fast-ULCNet) | MIT | Low-complexity CNN + FastGRNN, in `gtcrn`'s size class. Not yet attempted. |
 | [VoiceFixer / NVSR](https://github.com/haoheliu/voicefixer) | MIT | ResUNet mel predictor plus a TFGAN vocoder — the same two-stage shape as `sidon`, so the old "multi-component" objection does not apply. Not yet attempted. |
 | [NU-Wave2](https://github.com/maum-ai/nuwave2) | BSD-3-Clause | Diffusion, but few-step; the sampler loop would run in numpy outside the graph as `flowhigh`'s does. Not yet attempted. |

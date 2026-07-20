@@ -29,6 +29,7 @@ import audiosronnx.engines.mossformer2  # noqa: F401,E402  (denoise)
 import audiosronnx.engines.mpsenet  # noqa: F401,E402  (denoise)
 import audiosronnx.engines.cmgan  # noqa: F401,E402  (denoise)
 import audiosronnx.engines.metadenoiser  # noqa: F401,E402  (denoise)
+import audiosronnx.engines.mossformergan  # noqa: F401,E402  (denoise)
 
 __all__ = [
     "SRModel",
