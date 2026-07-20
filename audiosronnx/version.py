@@ -1,8 +1,8 @@
 # START_VERSION_BLOCK
 VERSION_MAJOR = 0
-VERSION_MINOR = 6
+VERSION_MINOR = 7
 VERSION_BUILD = 0
-VERSION_ALPHA = 2
+VERSION_ALPHA = 1
 # END_VERSION_BLOCK
 
 # __version__ is derived from the block above so that the release automation
