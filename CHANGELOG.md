@@ -42,6 +42,9 @@ versioning driven by conventional commits.
   matches the upstream pipeline to correlation 0.99999999.
 - **mpsenet** engine — MP-SENet 16 kHz denoiser with parallel magnitude/phase prediction,
   in DNS and VoiceBank checkpoints via `model=`.
+- **cmgan** engine — CMGAN conformer metric-GAN denoiser, 16 kHz.
+- `_stft.hamming_window` — periodic Hamming, distinct from the symmetric window Kaldi
+  feature extraction uses.
 - Kaldi-compatible log-mel filterbank and deltas in numpy (`_kaldi_fbank`), ported from
   `torchaudio.compliance.kaldi` to within 3.2e-05.
 - `_stft.stft`/`istft` accept an explicit analysis `window` (plus a `vorbis_window`

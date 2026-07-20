@@ -54,10 +54,22 @@ Not rejected — evaluated as viable and not yet integrated.
 
 | Model | License | State |
 |-------|---------|-------|
-| [CMGAN](https://github.com/ruizhecao96/CMGAN) | MIT | Conformer Metric-GAN, 16 kHz. Attention plus convolution, no sampler, so the generator should export; the discriminator is training-only and would be discarded. |
 | [MossFormerGAN_SE_16K](https://huggingface.co/alibabasglab/MossFormerGAN_SE_16K) | Apache-2.0 | The strongest reported PESQ (3.47) of any candidate surveyed. Blocked on an upstream checkpoint download that does not currently succeed. |
 | [LiSenNet](https://github.com/hyyan2k/LiSenNet) | MIT | 56 K parameters, in the same ultra-light class as `gtcrn`, with a third-party ONNX port already published. Would only earn a slot by beating `gtcrn` at a comparable size. |
 | [Fast-ULCNet](https://github.com/narrietal/Fast-ULCNet) | MIT | Low-complexity CNN + FastGRNN. Same class and same question as LiSenNet. |
+
+## A note on "multi-component" as a reason
+
+An external vocoder or a multi-graph pipeline is **not** grounds for rejection here.
+`deepfilternet` ships as three graphs, and `sidon` and `callenhancer` are both a feature
+predictor followed by a neural vocoder. What actually disqualifies a design is *dynamic*
+structure — a sampler loop whose length is data-dependent, or convolution kernels predicted
+per position — not the number of graphs.
+
+An iterative sampler is likewise closer to a cost problem than an export one: the loop can
+run in numpy outside the graph, exactly as the STFT does. The objection to AudioSR and
+SGMSE is that tens of network evaluations per utterance is impractical on CPU, not that the
+graph cannot be produced.
 
 ## Recurring export blockers
 
