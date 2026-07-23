@@ -1,0 +1,60 @@
+{
+  "engines": [
+    {
+      "alias": "hifiganbwe",
+      "kind": "sr",
+      "license": "MIT",
+      "load_seconds": 4.346,
+      "metrics": {
+        "lsd": 9.7306,
+        "mel_l1": 0.4558,
+        "sigmos.col": 3.1258,
+        "sigmos.disc": 4.3692,
+        "sigmos.loud": 3.3744,
+        "sigmos.noise": 3.7574,
+        "sigmos.ovrl": 2.8495,
+        "sigmos.reverb": 4.3377,
+        "sigmos.sig": 3.1702
+      },
+      "model_bytes": 4217287,
+      "n_files": 4,
+      "note": "",
+      "rtf_median": 1.6673,
+      "status": "ok"
+    },
+    {
+      "alias": "novasr",
+      "kind": "sr",
+      "license": "Apache-2.0",
+      "load_seconds": 1.109,
+      "metrics": {
+        "lsd": 29.4603,
+        "mel_l1": 0.7451,
+        "sigmos.col": 2.6917,
+        "sigmos.disc": 4.2113,
+        "sigmos.loud": 3.3987,
+        "sigmos.noise": 3.8661,
+        "sigmos.ovrl": 2.7026,
+        "sigmos.reverb": 4.0009,
+        "sigmos.sig": 3.2445
+      },
+      "model_bytes": 228736,
+      "n_files": 4,
+      "note": "",
+      "rtf_median": 0.1805,
+      "status": "ok"
+    }
+  ],
+  "kind": "sr",
+  "primary": "sigmos.ovrl",
+  "provenance": {
+    "dataset": "sanchit-gandhi/vctk",
+    "date": "2026-07-23",
+    "input_rate": 8000,
+    "limit": 4,
+    "metrics_lib": "speechonnxmetrics",
+    "revision": "73ef4ee7d49a6fed4ea1efd65f82b4c95faeb9de",
+    "seed": 1234,
+    "split": "train"
+  }
+}

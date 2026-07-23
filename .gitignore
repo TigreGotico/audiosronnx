@@ -14,3 +14,9 @@ htmlcov/
 out/
 .venv/
 venv/
+
+# benchmark results — per-file JSONL and non-promoted summaries are scratch;
+# only benchmarks/results/published/*.json is committed.
+benchmarks/results/*
+!benchmarks/results/published/
+!benchmarks/results/published/**

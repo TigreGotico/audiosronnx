@@ -7,6 +7,13 @@ versioning driven by conventional commits.
 ## [Unreleased]
 
 ### Added
+- Cross-engine **benchmark harness** (`benchmarks/`, `benchmark` install extra): scores
+  every registered engine on a fixed, externally-hosted gold set with the
+  `speechonnxmetrics` library — VoiceBank+DEMAND for denoising, VCTK for bandwidth
+  extension and a seeded compound-degradation restoration board. `python -m benchmarks.run`
+  writes a summary; `--promote` publishes it; `benchmarks/render.py` renders the measured
+  tables into the docs idempotently. An opt-in `pytest -m benchmark` floor test guards the
+  default engines against regressions.
 - `load_sr(engine=...)` facade over an `SRModel` ABC and an engine registry
   (`ENGINE_REGISTRY`, `register_engine`, `get_engine`, `available_models`).
 - HuggingFace / URL / local ONNX resolver with an XDG-based download cache.

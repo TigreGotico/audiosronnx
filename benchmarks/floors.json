@@ -1,0 +1,12 @@
+{
+  "_comment": "Regression floors for the default engine of each track. The floor test (test/test_benchmark_floor.py, opt-in via `pytest -m benchmark`) re-runs each engine at the recorded limit/seed and asserts its primary metric has not dropped below floor - epsilon. Floors are provisional, taken from the smoke subset; raise them deliberately after a full published run. Never lower a floor to make a red test pass — a real drop is a real regression.",
+  "epsilon": 0.05,
+  "seed": 1234,
+  "limit": 4,
+  "input_rate": 8000,
+  "tracks": {
+    "denoise": {"engine": "dpdfnet", "primary": "dnsmos.ovrl", "floor": 3.39},
+    "sr": {"engine": "lavasr", "primary": "sigmos.ovrl", "floor": 2.27},
+    "enhance": {"engine": "voicefixer", "primary": "dnsmos.ovrl", "floor": 2.84}
+  }
+}

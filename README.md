@@ -120,6 +120,12 @@ Engines are kept even when something else beats them, so published results stay
 reproducible and distinct architectures stay runnable. `cmgan` is the clearest example: it
 is dominated on both PESQ and SNR by `gtcrn` at a fourteenth of the size, and it stays.
 
+These answers are backed by a reproducible board: every engine is scored on a fixed,
+externally-hosted gold set with the `speechonnxmetrics` library, the same files for all of
+them. The measured tables live in [docs/denoising.md](docs/denoising.md) (denoising and
+restoration) and [docs/engines.md](docs/engines.md) (bandwidth extension); regenerate them
+with `python -m benchmarks.run` (see [benchmarks/](benchmarks/)).
+
 ## Documentation
 
 | Page | Contents |
