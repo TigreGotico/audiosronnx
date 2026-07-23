@@ -9,9 +9,11 @@ and L24 representations are fused by a Vocos adapter and resynthesised by a Voco
     vocoder         : feat[1, 1024, T]    ->  spec[1, 1282, T]   (pre-ISTFT)
 
 The encoder + adapter are fused into one graph (WavLM's conv front-end, transformer with
-gated relative-position bias, and the Vocos adapter), shipped **fp32** — the 24-layer
-WavLM-Large encoder loses too much to int8 (end-to-end corr drops to ~0.85), the same
-depth-driven degradation that makes CallEnhancer default to fp32. The vocoder graph is cut
+gated relative-position bias, and the Vocos adapter), shipped **fp32** by default with an
+optional near-lossless **fp16** download (``precision="fp16"``, ~45% smaller). int8 is not
+offered — a per-layer sweep showed the 24-layer WavLM-Large loses too much to dynamic
+quantization (whole-transformer int8 drops end-to-end corr to ~0.86), the same depth-driven
+degradation that makes CallEnhancer default to fp32. The vocoder graph is cut
 just before its ISTFT — ``torch.fft.irfft`` has no ONNX equivalent, so
 the Vocos "same"-padding inverse STFT (n_fft 1280, hop 320) runs in numpy here, matching
 upstream bit-for-bit. Nothing pulls torch at inference.
@@ -53,9 +55,25 @@ from audiosronnx.base import Denoiser, EngineEntry, register_engine
 from audiosronnx.resolver import resolve
 
 _HF_REPO = "TigreGotico/audiosronnx-unipase"
-_HF_REVISION: Optional[str] = "af5ac49c86fba1240d2b6c2ba04a2983f2c36e6a"
+_HF_REVISION: Optional[str] = "d8b02fd63974552bd99a8db8fd95ea146155a5c8"
 _ENCODER_ADAPTER = "encoder_adapter.onnx"
 _VOCODER = "vocoder.onnx"
+
+#: encoder + vocoder graph filenames per precision. ``fp32`` is full fidelity; ``fp16``
+#: cuts the download ~45% (2.18 GB -> 1.19 GB) at near-parity (end-to-end corr 0.99993),
+#: keeping every LayerNorm and the conv front-end in fp32 and casting only the heavy weight
+#: MatMuls to fp16. It is a smaller download, **not** faster on CPU: onnxruntime has no
+#: native fp16 kernels and up-casts at runtime (~15% slower here). ``int8`` is deliberately
+#: **not** offered: a genuine per-layer sweep showed dynamic int8 on this 24-layer
+#: WavLM-Large is too lossy — quantizing all FFN + projection weights drops end-to-end corr
+#: to 0.86, and the widest set that holds >=0.999 (q/k/v projections of 6 middle layers)
+#: barely shrinks the graph (1721 -> 1646 MB) with no speed-up, so it is not worth shipping.
+#: See ``conversion/export_unipase.py`` (``sensitivity_sweep``) and the README precision table.
+_FILES = {
+    "fp32": {"enc": "encoder_adapter.onnx", "voc": "vocoder.onnx"},
+    "fp16": {"enc": "encoder_adapter.fp16.onnx", "voc": "vocoder.fp16.onnx"},
+}
+_DEFAULT_PRECISION = "fp32"
 
 _SR = 16000
 _SEG_LEN = _SR * 8            # 8 s window the encoder graph was traced at
@@ -103,6 +121,12 @@ class UniPASEAdapter(Denoiser):
         onnxruntime execution providers (default CPU).
     cache_dir:
         Override the model download cache directory.
+    precision:
+        Weight precision of both graphs: ``"fp32"`` (default, full fidelity, 1.7 GB +
+        455 MB) or ``"fp16"`` (~1.19 GB total, end-to-end corr 0.99993 vs fp32 — a smaller
+        download, but *not* faster on CPU, where onnxruntime up-casts fp16 at runtime).
+        int8 is not offered (too lossy on this depth; see the module ``_FILES`` note).
+        ``encoder_adapter_path`` / ``vocoder_path`` override this.
     """
 
     input_sample_rate = _SR
@@ -113,14 +137,19 @@ class UniPASEAdapter(Denoiser):
         providers: Optional[List[str]] = None,
         cache_dir: Optional[str] = None,
         revision: Optional[str] = None,
+        precision: str = _DEFAULT_PRECISION,
         encoder_adapter_path: Optional[str] = None,
         vocoder_path: Optional[str] = None,
         **cfg,
     ):
         super().__init__(**cfg)
+        if precision not in _FILES:
+            raise ValueError(
+                f"precision must be one of {sorted(_FILES)}, got {precision!r}")
         self._providers = providers
         self._cache_dir = cache_dir
         self._revision = revision if revision is not None else _HF_REVISION
+        self._precision = precision
         self._encoder_adapter_path = encoder_adapter_path
         self._vocoder_path = vocoder_path
         self._enc = None
@@ -134,14 +163,15 @@ class UniPASEAdapter(Denoiser):
         opts = ort.SessionOptions()
         opts.intra_op_num_threads = os.cpu_count() or 4
         providers = self._providers or ["CPUExecutionProvider"]
+        files = _FILES[self._precision]
 
         def _sess(explicit, name):
             path = explicit or resolve(
                 name, hf_repo=_HF_REPO, revision=self._revision, cache_dir=self._cache_dir)
             return ort.InferenceSession(path, sess_options=opts, providers=providers)
 
-        self._enc = _sess(self._encoder_adapter_path, _ENCODER_ADAPTER)
-        self._voc = _sess(self._vocoder_path, _VOCODER)
+        self._enc = _sess(self._encoder_adapter_path, files["enc"])
+        self._voc = _sess(self._vocoder_path, files["voc"])
 
     def _enhance_window(self, wave: np.ndarray) -> np.ndarray:
         """Run one fixed 8 s window (padded if short) and return ``wave.size`` samples."""
@@ -203,7 +233,8 @@ register_engine(EngineEntry(
         "UniPASE (Rong et al., IEEE TASLP): generative universal speech enhancement — "
         "noise and reverberation removed in one feed-forward pass at 16 kHz. DeWavLM-Omni "
         "SSL encoder + Vocos adapter + Vocos vocoder, over a fixed 8 s window. Generative, "
-        "so the detail it restores is invented. fp32 WavLM encoder; ISTFT in numpy. ONNX from "
+        "so the detail it restores is invented. fp32 WavLM encoder (optional near-lossless "
+        "fp16, precision='fp16'); ISTFT in numpy. ONNX from "
         "TigreGotico/audiosronnx-unipase. (MIT)"
     ),
     input_sample_rate=_SR,

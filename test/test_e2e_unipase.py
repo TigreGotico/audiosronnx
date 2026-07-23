@@ -66,6 +66,26 @@ def test_registered_as_enhance_not_denoise():
     assert entry.input_sample_rate == entry.output_sample_rate == _SR
 
 
+def test_precision_selects_variant_filenames():
+    """fp32 (default) and fp16 map to the published HF filenames; int8 is rejected."""
+    from audiosronnx.engines.unipase import UniPASEAdapter, _FILES
+
+    assert set(_FILES) == {"fp32", "fp16"}
+    assert _FILES["fp32"] == {"enc": "encoder_adapter.onnx", "voc": "vocoder.onnx"}
+    assert _FILES["fp16"] == {"enc": "encoder_adapter.fp16.onnx", "voc": "vocoder.fp16.onnx"}
+    assert UniPASEAdapter()._precision == "fp32"                       # fp32 by default
+    assert UniPASEAdapter(precision="fp16")._precision == "fp16"
+
+
+def test_unknown_precision_rejected():
+    import pytest
+
+    from audiosronnx.engines.unipase import UniPASEAdapter
+
+    with pytest.raises(ValueError):
+        UniPASEAdapter(precision="int8")
+
+
 def test_reachable_through_load_denoise():
     from audiosronnx import available_denoisers
 
@@ -103,6 +123,21 @@ def test_unipase_preserves_length(speech16k_path):
     clean, sr = sf.read(speech16k_path, dtype="float32")
     out, _ = _engine().denoise(clean, sr)
     assert out.size == int(round(_SR / sr * clean.size))
+
+
+def test_unipase_fp16_matches_fp32_on_real_speech(speech16k_path):
+    """The fp16 variant must track fp32 closely on real speech (near-lossless: corr >0.999)."""
+    import soundfile as sf
+
+    clean, sr = sf.read(speech16k_path, dtype="float32")
+    noisy = (clean + 0.03 * np.random.RandomState(7).randn(clean.size)).astype(np.float32)
+    out32, _ = _engine(precision="fp32").denoise(noisy, sr)
+    out16, _ = _engine(precision="fp16").denoise(noisy, sr)
+    assert out16.shape == out32.shape
+    assert np.isfinite(out16).all()
+    n = min(out16.size, out32.size)
+    corr = float(np.corrcoef(out16[:n], out32[:n])[0, 1])
+    assert corr > 0.999, f"fp16 diverged from fp32: corr={corr:.6f}"
 
 
 def test_unipase_crosses_the_window_boundary():

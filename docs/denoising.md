@@ -27,7 +27,7 @@ cannot be loaded as a denoiser by accident.
 | [metadenoiser](#metadenoiser) | 16 kHz | 19–34 MB | **CC-BY-NC-4.0** | time-domain Demucs; non-commercial weights |
 | [mossformergan](#mossformergan) | 16 kHz | 17.7 MB | Apache-2.0 | highest published PESQ (3.47) |
 | [voicefixer](#voicefixer) | 44.1 kHz | 415 MB | MIT | general *restoration*, not denoising alone |
-| [unipase](#unipase) | 16 kHz | 1.7 GB | MIT | *universal enhancement* — noise + reverb, generative WavLM |
+| [unipase](#unipase) | 16 kHz | 1.7 GB (fp16 ~1.2 GB) | MIT | *universal enhancement* — noise + reverb, generative WavLM |
 | [deepfilternet](#deepfilternet) | 48 kHz | ~2 MB | MIT | needs the `deepfilternet` extra |
 
 ## Recommendations
@@ -260,10 +260,26 @@ above. It works over a fixed **8 s window** slid with a 4 s hop and 2 s-trimmed 
 exactly as upstream's `inference_long.py`.
 
 At 1.7 GB (a single fp32 graph for the WavLM encoder + adapter, plus a 455 MB vocoder) it is
-the largest engine here. int8 is not offered: the 24-layer WavLM-Large loses too much to
-dynamic quantization (end-to-end correlation ~0.85), the same depth-driven degradation that
-makes `callenhancer` default to fp32. Verified against the upstream torch pipeline on real
-speech at correlation **0.99999988** (~0.6× realtime on CPU).
+the largest engine here. Verified against the upstream torch pipeline on real speech at
+correlation **0.99999988** (~0.6× realtime on CPU).
+
+```python
+sr = load_sr("unipase")                    # fp32, 1.7 GB + 455 MB
+sr = load_sr("unipase", precision="fp16")  # ~45% smaller download, corr 0.99993 vs fp32
+```
+
+A near-lossless **fp16** variant (`precision="fp16"`) cuts the download ~45% (2.18 GB →
+1.19 GB) at end-to-end correlation **0.99993** vs fp32, keeping the conv front-end and every
+LayerNorm in fp32 and casting only the heavy weight MatMuls. It is a smaller download, **not**
+faster on CPU — onnxruntime has no native fp16 kernels and up-casts at runtime (~15% slower
+here). **int8 is not offered.** A per-layer sensitivity sweep
+(`conversion/export_unipase.py --sweep`) confirms the 24-layer WavLM-Large loses too much to
+dynamic quantization: quantizing all FFN + projection weights drops end-to-end correlation to
+~0.86 (the naive whole-graph value is ~0.85, near-identical), and even a single quantized
+layer falls below 0.999. The widest int8 set that holds ≥0.999 — the q/k/v projections of six
+middle layers — barely shrinks the graph (1721 → 1646 MB) with no speed-up, so no int8 encoder
+is published. This is the same depth-driven degradation that makes `callenhancer` default to
+fp32.
 
 Upstream's optional packet-loss concealment (PLC) and 48 kHz PostNet bandwidth extension
 are not shipped — PLC needs a data-dependent CNN-output mask that does not trace, and the

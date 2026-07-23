@@ -7,11 +7,15 @@ followed by a neural vocoder):
 - **encoder_adapter** — the DeWavLM-Omni WavLM encoder (conv front-end + 24-layer
   transformer with gated relative-position bias) whose L1 and L24 layer reps are fused by a
   Vocos adapter: ``wav[1, 128000]`` -> ``feat[1, 400, 1024]``. Shipped **fp32** (a single
-  ~1.7 GB graph, under the 2 GB protobuf limit). int8 is available via ``--quantize`` but is
-  *not* recommended: the 24-layer WavLM-Large loses too much (end-to-end corr ~0.85), the
-  same depth-driven degradation that makes CallEnhancer default to fp32. Quantizing must be
-  restricted to MatMul — the conv front-end otherwise yields ``ConvInteger`` nodes ORT CPU
-  cannot run.
+  ~1.7 GB graph, under the 2 GB protobuf limit) with an optional near-lossless **fp16**
+  variant (``--fp16``, end-to-end corr 0.99993, ~45%% smaller download). int8 is **not**
+  shipped: the per-layer ``--sweep`` shows the 24-layer WavLM-Large loses too much to
+  dynamic quantization — whole-transformer int8 drops end-to-end corr to ~0.86 (the naive
+  whole-graph value is ~0.85), the same depth-driven degradation that makes CallEnhancer
+  default to fp32, and the widest int8 set holding >=0.999 barely shrinks the graph. fp16
+  keeps the conv front-end and every LayerNorm in fp32, casting only the heavy weight
+  MatMuls; boundary casts are inserted explicitly (the stock converters leave mixed-type
+  edges ORT refuses to load).
 - **vocoder** — the Vocos vocoder, cut just before its ISTFT: ``feat[1, 1024, T]`` ->
   ``spec[1, 1282, T]`` (interleaved log-magnitude + phase). ``torch.fft.irfft`` has no ONNX
   op, so the Vocos "same"-padding inverse STFT (n_fft 1280, hop 320) stays in numpy in the
@@ -33,7 +37,7 @@ Parity is measured on real speech: enhancement models drift on out-of-domain noi
 Usage::
 
     python export_unipase.py --unipase-src /path/to/clone/of/Xiaobin-Rong/unipase \\
-        --output-dir ./out/unipase --speech reference.wav [--quantize]
+        --output-dir ./out/unipase --speech reference.wav [--fp16] [--sweep]
 
 Requires: torch, torchaudio, onnx, onnxruntime, huggingface_hub (the ``convert`` extra),
 plus the upstream repo checked out (``--unipase-src``) so ``models`` is importable.
@@ -45,6 +49,7 @@ Reference
 from __future__ import annotations
 
 import argparse
+import re
 import sys
 import time
 from pathlib import Path
@@ -56,6 +61,16 @@ _HF_SRC = "Xiaobin-Rong/unipase"
 _SR = 16000
 _SEG = _SR * 8
 _N_FFT, _HOP = 1280, 320
+_NORM_OPS = ("LayerNormalization", "InstanceNormalization")
+#: transformer weight-MatMul name suffixes eligible for fp16 / int8. The conv front-end,
+#: the gated relative-position math (``grep_linear``, the activation-only ``MatMul_3/4``),
+#: every LayerNorm, the Vocos adapter and the vocoder are never touched.
+_HEAVY_SUFFIXES = (
+    "/fc1/MatMul", "/fc2/MatMul",
+    "/self_attn/MatMul", "/self_attn/MatMul_1", "/self_attn/MatMul_2", "/self_attn/Gemm",
+    "/pwconv1/MatMul", "/pwconv2/MatMul", "/adp/proj/MatMul", "/adp/head/MatMul",
+    "/post_extract_proj/MatMul",
+)
 
 
 def _ckpt(name: str) -> str:
@@ -89,19 +104,186 @@ def _vocos_istft(spec_params: np.ndarray) -> np.ndarray:
     return (ola / np.where(env > 1e-11, env, 1.0)).astype(np.float32)
 
 
-def _quantize(src: Path) -> Path:
-    """Dynamic int8 of the transformer MatMuls (conv front-end stays fp32)."""
-    from onnxruntime.quantization import QuantType, quantize_dynamic
-    from onnxruntime.quantization.shape_inference import quant_pre_process
+# --------------------------------------------------------------------------- #
+# fp16 — deterministic boundary-cast conversion (needs no fp16 runtime).
+# --------------------------------------------------------------------------- #
+def _float_tensor_names(src: Path) -> set:
+    """Names of all float32 tensors in ``src`` (disk-based shape inference, memory-safe)."""
+    import onnx
 
-    pre = src.with_name("encoder_adapter.pre.onnx")
-    out = src.with_name("encoder_adapter.int8.onnx")
-    quant_pre_process(str(src), str(pre))
-    quantize_dynamic(str(pre), str(out), weight_type=QuantType.QInt8,
-                     op_types_to_quantize=["MatMul"])
-    pre.unlink(missing_ok=True)
-    Path(str(pre) + ".data").unlink(missing_ok=True)
-    print(f"{out.name}  {out.stat().st_size / 1e6:.1f} MB  (int8 from {src.stat().st_size / 1e6:.1f} MB)")
+    inferred = src.with_name(src.stem + ".shapes.onnx")
+    onnx.shape_inference.infer_shapes_path(str(src), str(inferred))
+    m = onnx.load(str(inferred), load_external_data=False)
+    fl = {vi.name for vi in list(m.graph.value_info) + list(m.graph.input) + list(m.graph.output)
+          if vi.type.tensor_type.elem_type == onnx.TensorProto.FLOAT}
+    fl |= {i.name for i in m.graph.initializer if i.data_type == onnx.TensorProto.FLOAT}
+    inferred.unlink(missing_ok=True)
+    return fl
+
+
+def build_fp16(src: Path, dst: Path, keep_fp32_node) -> Path:
+    """Cast ``src`` to fp16, keeping ``keep_fp32_node(node)`` nodes and all norms in fp32.
+
+    onnxruntime/onnxconverter-common's own casting is unreliable on this graph (the WavLM
+    conv front-end's Transpose/Cast/GELU pattern and the pervasive fp32 LayerNorms leave
+    mixed-type edges ORT refuses to load). This does the conversion explicitly instead: it
+    up-casts only the initializers feeding fp16 nodes, then inserts a ``Cast`` on every float
+    edge whose producer dtype differs from what the consumer runs in. Graph I/O stay fp32.
+    Deterministic and needs no fp16 kernels; the model never leaves fp32 arithmetic on CPU.
+    """
+    import onnx
+    from onnx import helper, numpy_helper as nh, TensorProto
+
+    fp32, fp16 = TensorProto.FLOAT, TensorProto.FLOAT16
+    float_names = _float_tensor_names(src)
+    m = onnx.load(str(src))
+    g = m.graph
+    fp32_nodes = {n.name for n in g.node if n.op_type in _NORM_OPS or keep_fp32_node(n)}
+
+    def is16(node):
+        return node.name not in fp32_nodes
+
+    producer, cast_to = {}, {}
+    for n in g.node:
+        for o in n.output:
+            producer[o] = n
+        if n.op_type == "Cast":
+            cast_to[n.name] = next(a.i for a in n.attribute if a.name == "to")
+
+    inputs = {i.name for i in g.input}
+    consumed16, consumed32 = set(), set()
+    for n in g.node:
+        (consumed16 if is16(n) else consumed32).update(n.input)
+
+    for tp in g.initializer:                                   # initializers used only by fp16 nodes
+        if tp.data_type == fp32 and tp.name in consumed16 and tp.name not in consumed32:
+            tp.CopyFrom(nh.from_array(nh.to_array(tp).astype(np.float16), tp.name))
+    for n in g.node:                                           # Constant tensors owned by fp16 nodes
+        if n.op_type == "Constant" and is16(n) and n.output[0] in float_names:
+            for a in n.attribute:
+                if a.name == "value" and a.t.data_type == fp32:
+                    a.t.CopyFrom(nh.from_array(nh.to_array(a.t).astype(np.float16)))
+    init = {i.name: i for i in g.initializer}
+
+    def dtype(t):
+        if t not in float_names:
+            return None
+        if t in init:
+            return init[t].data_type
+        if t in inputs:
+            return fp32
+        p = producer.get(t)
+        if p is None:
+            return fp32
+        return cast_to.get(p.name, fp32) if p.op_type == "Cast" else (fp16 if is16(p) else fp32)
+
+    cache, new_nodes, ctr = {}, [], [0]
+
+    def cast(t, want):
+        if (t, want) not in cache:
+            ctr[0] += 1
+            out = f"{t}__cast{'16' if want == fp16 else '32'}_{ctr[0]}"
+            new_nodes.append(helper.make_node("Cast", [t], [out], to=want, name=f"bcast_{ctr[0]}"))
+            cache[(t, want)] = out
+        return cache[(t, want)]
+
+    for n in g.node:
+        if n.op_type == "Cast":
+            continue
+        want = fp16 if is16(n) else fp32
+        for i, t in enumerate(n.input):
+            if dtype(t) not in (None, want):
+                n.input[i] = cast(t, want)
+    for o in g.output:                                         # keep graph outputs fp32
+        p = producer.get(o.name)
+        if o.name in float_names and p is not None and p.op_type != "Cast" and is16(p):
+            tmp = o.name + "__fp16"
+            for nn in g.node:
+                nn.output[:] = [tmp if x == o.name else x for x in nn.output]
+            new_nodes.append(helper.make_node("Cast", [tmp], [o.name], to=fp32, name=f"ocast_{o.name}"))
+
+    g.node.extend(new_nodes)
+    _topo_sort(g)
+    onnx.save(m, str(dst))
+    print(f"{dst.name}  {dst.stat().st_size / 1e6:.1f} MB  (fp16 from {src.stat().st_size / 1e6:.1f} MB)")
+    return dst
+
+
+def _topo_sort(g) -> None:
+    have = {i.name for i in g.initializer} | {i.name for i in g.input}
+    pending, ordered = list(g.node), []
+    while pending:
+        rest, moved = [], False
+        for n in pending:
+            if all(x in have or x == "" for x in n.input):
+                ordered.append(n); have.update(n.output); moved = True
+            else:
+                rest.append(n)
+        pending = rest
+        if not moved:
+            ordered.extend(pending); break
+    del g.node[:]
+    g.node.extend(ordered)
+
+
+def _keep_fp32_heavy_only(node) -> bool:
+    """fp32 for everything except the heavy transformer weight MatMuls (the fp16 target)."""
+    return not any(node.name.endswith(s) for s in _HEAVY_SUFFIXES)
+
+
+# --------------------------------------------------------------------------- #
+# int8 — selective dynamic quantization + per-layer sensitivity sweep.
+# --------------------------------------------------------------------------- #
+def _safe_int8_nodes(src: Path):
+    """{layer -> [MatMul names]} for the FFN + q/k/v-projection weight MatMuls per layer.
+
+    Excludes ``grep_linear`` (gated relative-position math), the activation-only attention
+    MatMuls, the conv front-end and the adapter — the quantization-sensitive parts.
+    """
+    import onnx
+
+    m = onnx.load(str(src))
+    inits = {i.name for i in m.graph.initializer}
+    safe_suf = ("/fc1/MatMul", "/fc2/MatMul",
+                "/self_attn/MatMul", "/self_attn/MatMul_1", "/self_attn/MatMul_2")
+    per = {}
+    for n in m.graph.node:
+        if n.op_type != "MatMul":
+            continue
+        mo = re.match(r"/encoder/layers\.(\d+)/", n.name)
+        if mo and any(n.name.endswith(s) for s in safe_suf) and any(x in inits for x in n.input):
+            per.setdefault(int(mo.group(1)), []).append(n.name)
+    return {k: per[k] for k in sorted(per)}
+
+
+def quantize_int8(src: Path, dst: Path, nodes) -> Path:
+    """Weights-only int8 dynamic quant (QOperator) of exactly ``nodes`` (MatMul names)."""
+    from onnxruntime.quantization import QuantType, quantize_dynamic
+
+    quantize_dynamic(str(src), str(dst), weight_type=QuantType.QInt8,
+                     op_types_to_quantize=["MatMul"], nodes_to_quantize=list(nodes))
+    return dst
+
+
+def sensitivity_sweep(src: Path, score, layer_kinds=("/self_attn/", "/fc1/", "/fc2/")):
+    """Per-layer int8 sensitivity sweep: quantize one layer's safe MatMuls at a time.
+
+    ``score(quantized_path) -> float`` runs the caller's end-to-end pipeline and returns
+    correlation vs the fp32 output on real speech. Returns ``{layer -> corr}``. This is the
+    evidence behind unipase shipping fp32/fp16 only: on this 24-layer WavLM-Large even a
+    single quantized layer falls short of the 0.999 bar, and quantizing all FFN + projection
+    weights drops end-to-end corr to ~0.86 (near the naive whole-graph 0.85). The widest set
+    that holds >=0.999 (q/k/v projections of ~6 middle layers) barely shrinks the graph, so no
+    int8 encoder is published — see ``_FILES`` in ``engines/unipase.py``.
+    """
+    safe = _safe_int8_nodes(src)
+    tmp = src.with_name(src.stem + ".sweep.int8.onnx")
+    out = {}
+    for layer, nodes in safe.items():
+        quantize_int8(src, tmp, nodes)
+        out[layer] = score(tmp)
+        print(f"  layer {layer:2d}: corr {out[layer]:.6f}", flush=True)
+    tmp.unlink(missing_ok=True)
     return out
 
 
@@ -127,8 +309,10 @@ def main() -> None:
                     help="path to a checkout of github.com/Xiaobin-Rong/unipase (for `models`)")
     ap.add_argument("--output-dir", type=Path, default=Path("./out/unipase"))
     ap.add_argument("--speech", default=None, help="a real speech wav; noise is not representative")
-    ap.add_argument("--quantize", action="store_true",
-                    help="also emit an int8 encoder (NOT recommended: e2e corr ~0.85)")
+    ap.add_argument("--fp16", action="store_true",
+                    help="also emit fp16 encoder + vocoder (~45%% smaller download, corr 0.99993)")
+    ap.add_argument("--sweep", action="store_true",
+                    help="run the int8 per-layer sensitivity sweep (evidence for shipping no int8)")
     a = ap.parse_args()
     a.output_dir.mkdir(parents=True, exist_ok=True)
     sys.path.insert(0, a.unipase_src)
@@ -178,27 +362,46 @@ def main() -> None:
                       opset_version=17, do_constant_folding=True, dynamo=False)
     print(f"{v_path.name}  {v_path.stat().st_size / 1e6:.1f} MB")
 
-    if a.quantize:
-        _quantize(ea_path)  # emitted for inspection only; the engine ships fp32
-
     # ---- parity: torch full core vs the shipped fp32 ONNX graphs + numpy ISTFT ----
     import onnxruntime as ort
 
-    es = ort.InferenceSession(str(ea_path), providers=["CPUExecutionProvider"])
-    vsess = ort.InferenceSession(str(v_path), providers=["CPUExecutionProvider"])
+    def _onnx_e2e(enc_path: Path, voc_path: Path):
+        es = ort.InferenceSession(str(enc_path), providers=["CPUExecutionProvider"])
+        vsess = ort.InferenceSession(str(voc_path), providers=["CPUExecutionProvider"])
+        t0 = time.perf_counter()
+        f = es.run(None, {"wav": wav.numpy()})[0]
+        s = vsess.run(None, {"feat": np.ascontiguousarray(f.transpose(0, 2, 1))})[0]
+        return _vocos_istft(s), time.perf_counter() - t0
+
     with torch.inference_mode():
         twav = voc(ref_feat.transpose(1, 2)).numpy().ravel()
-    t0 = time.perf_counter()
-    ofeat = es.run(None, {"wav": wav.numpy()})[0]
-    ospec = vsess.run(None, {"feat": np.ascontiguousarray(ofeat.transpose(0, 2, 1))})[0]
-    owav = _vocos_istft(ospec)
-    dt = time.perf_counter() - t0
+    owav, dt = _onnx_e2e(ea_path, v_path)
     n = min(twav.size, owav.size)
     corr = float(np.corrcoef(twav[:n], owav[:n])[0, 1])
     err = float(np.abs(twav[:n] - owav[:n]).max())
     print(f"end-to-end parity: corr={corr:.8f} max abs err={err:.2e} "
           f"{'PASS' if corr > 0.9999 else 'FAIL'}")
     print(f"CPU latency for 8 s output: {dt:.2f} s  ({8.0 / dt:.1f}x realtime)")
+
+    def _corr_vs_fp32(enc_path, voc_path):
+        o, _ = _onnx_e2e(enc_path, voc_path)
+        k = min(o.size, owav.size)
+        return float(np.corrcoef(o[:k], owav[:k])[0, 1])
+
+    # ---- optional fp16 variant: fp32 front-end + norms, fp16 heavy weight MatMuls ----
+    if a.fp16:
+        ea16 = build_fp16(ea_path, a.output_dir / "encoder_adapter.fp16.onnx", _keep_fp32_heavy_only)
+        v16 = build_fp16(v_path, a.output_dir / "vocoder.fp16.onnx", lambda n: False)  # norms fp32 only
+        c = _corr_vs_fp32(ea16, v16)
+        print(f"fp16 end-to-end parity vs fp32: corr={c:.6f} {'PASS' if c > 0.999 else 'FAIL'}")
+
+    # ---- optional int8 sensitivity sweep (documents why no int8 encoder ships) ----
+    if a.sweep:
+        print("int8 per-layer sensitivity sweep (corr vs fp32; target >=0.999):")
+        res = sensitivity_sweep(ea_path, lambda p: _corr_vs_fp32(p, v_path))
+        best = max(res.values())
+        print(f"best single-layer corr {best:.6f} — below 0.999; whole-transformer int8 ~0.86. "
+              "No int8 encoder is published.")
 
 
 if __name__ == "__main__":

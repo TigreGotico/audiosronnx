@@ -51,7 +51,7 @@ the extender reconstructs a high band out of the noise.
 | **metadenoiser** | 16 kHz | 19–34 MB | **CC-BY-NC-4.0** | you want a time-domain model and NC is acceptable |
 | **mossformergan** | 16 kHz | 17.7 MB | Apache-2.0 | highest published PESQ (3.47) |
 | **voicefixer** | 44.1 kHz | 415 MB | MIT | *restoration* — noise, reverb, clipping and band loss at once |
-| **unipase** | 16 kHz | 1.7 GB | MIT | *universal enhancement* — noise and reverb removed generatively via a WavLM encoder |
+| **unipase** | 16 kHz | 1.7 GB (fp16 ~1.2 GB) | MIT | *universal enhancement* — noise and reverb removed generatively via a WavLM encoder |
 | **deepfilternet** | 48 kHz | ~2 MB | MIT | you already depend on `libdf` |
 
 SNR recovered on one clip at 19 / 11 / 5 dB input SNR: dpdfnet **+4.9 / +10.3 / +13.7 dB**,
