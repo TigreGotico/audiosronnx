@@ -29,6 +29,30 @@ A restoration engine reconstructs the signal, so its output is **enhanced-real**
 ground truth. That is fine as an acoustic-model target and fine for listening; treat any
 high band it produces as invented.
 
+## Measured board
+
+Every engine is scored on a stratified **VCTK** subset — clean 48 kHz speech downsampled
+to a narrowband input, then reconstructed — with the `speechonnxmetrics` library.
+`python -m benchmarks.run --kind sr` regenerates it. The headline is **SIGMOS OVRL**, a
+no-reference 48 kHz perceptual MOS; LSD and mel-L1 measure spectral faithfulness against
+the true fullband signal. The two axes disagree on purpose: a *generative* engine
+(`sidon`, `callenhancer`, `flowhigh`) can sound excellent on SIGMOS while scoring poorly
+on LSD, because it resynthesises plausible high-frequency detail rather than recovering
+the exact spectrum. Rank generative engines on SIGMOS and filtering engines on LSD.
+
+<!-- benchmark:sr:start -->
+
+_**Provisional — full run pending.** Smoke subset only._ Scored with `speechonnxmetrics`; dataset `sanchit-gandhi/vctk`, rev `73ef4ee7d4`, 8000 Hz input, seed 1234, 4 files, 2026-07-23.
+
+| Engine | SIGMOS | LSD↓ | mel-L1↓ | Spk-sim | RTF | Size | License |
+|---|---|---|---|---|---|---|---|
+| **hifiganbwe** — SOTA (measured) | 2.849 | 9.731 | 0.456 | — | 1.667× | 4.2 MB | MIT |
+| **novasr** | 2.703 | 29.460 | 0.745 | — | 0.180× | 229 KB | Apache-2.0 |
+
+Higher is better except columns marked ↓. Non-reference MOS (DNSMOS, SIGMOS) scores the output alone; intrusive columns compare against the clean reference. `Spk-sim` is speaker-embedding cosine — a low value flags an engine that resynthesised a different-sounding voice.
+
+<!-- benchmark:sr:end -->
+
 ## lavasr
 
 Vocos-based bandwidth extension with a Linkwitz-Riley spectral merge that keeps the

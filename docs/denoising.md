@@ -29,6 +29,45 @@ cannot be loaded as a denoiser by accident.
 | [voicefixer](#voicefixer) | 44.1 kHz | 415 MB | MIT | general *restoration*, not denoising alone |
 | [deepfilternet](#deepfilternet) | 48 kHz | ~2 MB | MIT | needs the `deepfilternet` extra |
 
+## Measured board
+
+Every denoiser is scored on the **VoiceBank+DEMAND** test set — real recorded noise,
+the same 824 paired files for every engine — with the `speechonnxmetrics` library.
+The board is reproducible: `python -m benchmarks.run --kind denoise` regenerates it,
+and `benchmarks/render.py` writes the table below. **DNSMOS OVRL** (a no-reference
+perceptual MOS) is the headline; SI-SDR and STOI report waveform fidelity against the
+clean reference. Read the two together — a metric-GAN can raise perceptual MOS while
+moving the waveform away from the reference, and only the pair reveals that.
+
+<!-- benchmark:denoise:start -->
+
+_**Provisional — full run pending.** Smoke subset only._ Scored with `speechonnxmetrics`; dataset `JacobLinCool/VoiceBank-DEMAND-16k`, rev `4497db342d`, seed 1234, 4 files, 2026-07-23.
+
+| Engine | DNSMOS | SIG | SI-SDR | STOI | Spk-sim | RTF | Size | License |
+|---|---|---|---|---|---|---|---|---|
+| **dpdfnet** — SOTA (measured) | 3.398 | 3.589 | 20.374 | 0.933 | 0.936 | 1.530× | 10.5 MB | Apache-2.0 |
+| **gtcrn** | 3.173 | 3.477 | 12.754 | 0.934 | 0.962 | 0.312× | 536 KB | MIT |
+
+Higher is better except columns marked ↓. Non-reference MOS (DNSMOS, SIGMOS) scores the output alone; intrusive columns compare against the clean reference. `Spk-sim` is speaker-embedding cosine — a low value flags an engine that resynthesised a different-sounding voice.
+
+<!-- benchmark:denoise:end -->
+
+The restoration engine `voicefixer` also runs on a compound-degradation board (noise +
+reverb + band loss stacked), where it is scored as a holistic restorer rather than a
+plain denoiser:
+
+<!-- benchmark:enhance:start -->
+
+_**Provisional — full run pending.** Smoke subset only._ Scored with `speechonnxmetrics`; dataset `sanchit-gandhi/vctk`, rev `73ef4ee7d4`, seed 1234, 2 files, 2026-07-23.
+
+| Engine | DNSMOS | SIGMOS | STOI | MCD↓ | Spk-sim | RTF | Size | License |
+|---|---|---|---|---|---|---|---|---|
+| **voicefixer** — SOTA (measured) | 2.850 | 2.585 | 0.622 | 10.634 | 0.471 | 2.575× | 415.4 MB | MIT |
+
+Higher is better except columns marked ↓. Non-reference MOS (DNSMOS, SIGMOS) scores the output alone; intrusive columns compare against the clean reference. `Spk-sim` is speaker-embedding cosine — a low value flags an engine that resynthesised a different-sounding voice.
+
+<!-- benchmark:enhance:end -->
+
 ## Recommendations
 
 If you only read one line: **use `dpdfnet`**. It needs no optional dependencies, covers

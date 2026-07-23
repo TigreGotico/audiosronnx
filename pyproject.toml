@@ -49,6 +49,10 @@ test = ["pytest", "pytest-cov"]
 deepfilternet = ["DeepFilterLib"]
 # model conversion / publishing (maintainer only; needs torch + the upstream models)
 convert = ["torch", "torchaudio", "onnx", "huggingface_hub", "vocos", "einops", "gdown", "transformers", "descript-audio-codec"]
+# cross-engine benchmark harness (benchmarks/). Pulls the metrics library and the
+# HuggingFace `datasets` streaming loaders; no torch in the scoring path. See
+# benchmarks/ and docs for how to run the board.
+benchmark = ["speechonnxmetrics>=0.0.1", "datasets", "soundfile"]
 
 [tool.setuptools.dynamic]
 version = {attr = "audiosronnx.version.__version__"}
@@ -59,3 +63,11 @@ include = ["audiosronnx*"]
 
 [tool.setuptools.package-data]
 "audiosronnx" = ["data/*"]
+
+[tool.pytest.ini_options]
+# The benchmark floor test downloads multi-GB weights + gold audio, so it is
+# opt-in only: `pytest -m benchmark`. The default suite stays offline and fast.
+markers = [
+    "benchmark: cross-engine benchmark floor checks (opt-in; downloads weights + datasets)",
+]
+addopts = "-m 'not benchmark'"
