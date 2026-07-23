@@ -27,6 +27,7 @@ cannot be loaded as a denoiser by accident.
 | [metadenoiser](#metadenoiser) | 16 kHz | 19–34 MB | **CC-BY-NC-4.0** | time-domain Demucs; non-commercial weights |
 | [mossformergan](#mossformergan) | 16 kHz | 17.7 MB | Apache-2.0 | highest published PESQ (3.47) |
 | [voicefixer](#voicefixer) | 44.1 kHz | 415 MB | MIT | general *restoration*, not denoising alone |
+| [unipase](#unipase) | 16 kHz | 1.7 GB | MIT | *universal enhancement* — noise + reverb, generative WavLM |
 | [deepfilternet](#deepfilternet) | 48 kHz | ~2 MB | MIT | needs the `deepfilternet` extra |
 
 ## Recommendations
@@ -45,6 +46,7 @@ If you only read one line: **use `dpdfnet`**. It needs no optional dependencies,
 | several defects at once | **voicefixer** | restoration, not denoising: noise + reverb + clipping + band loss |
 | to reproduce published results | **frcrn**, **cmgan**, **mpsenet (`vb`)** | these are the checkpoints those numbers came from |
 | a recording damaged several ways at once | **voicefixer** | restores noise, reverb, clipping and band loss together |
+| noise + reverb, SSL-model quality, size no object | **unipase** | generative WavLM enhancement; 16 kHz, 1.7 GB |
 
 Engines are kept even when something else beats them, so a result can be reproduced or an
 architecture compared. `cmgan` is the clearest case: it is dominated on both PESQ and SNR by
@@ -242,6 +244,30 @@ the table above.
 At 415 MB across two graphs it is the heaviest engine in the library, and it works over a
 fixed 5 s window that the adapter slides. Verified against upstream on real speech at
 correlation 0.99999996.
+
+## unipase
+
+UniPASE (Rong et al., *IEEE TASLP*): **generative universal speech enhancement** — noise
+and reverberation removed in a single feed-forward pass at 16 kHz. Its core is a de-noised
+WavLM-Large (`DeWavLM-Omni`) SSL encoder: the L1 and L24 representations are fused by a
+Vocos adapter and resynthesised by a Vocos vocoder. The encoder and adapter fuse into one
+ONNX graph; the vocoder is a second graph whose Vocos "same"-padding ISTFT runs in numpy
+(there is no ONNX `irfft`).
+
+Like `voicefixer` it is **generative**: the detail it restores is invented, not recovered,
+so SNR against a clean reference is the wrong yardstick and it is absent from the table
+above. It works over a fixed **8 s window** slid with a 4 s hop and 2 s-trimmed overlap-add,
+exactly as upstream's `inference_long.py`.
+
+At 1.7 GB (a single fp32 graph for the WavLM encoder + adapter, plus a 455 MB vocoder) it is
+the largest engine here. int8 is not offered: the 24-layer WavLM-Large loses too much to
+dynamic quantization (end-to-end correlation ~0.85), the same depth-driven degradation that
+makes `callenhancer` default to fp32. Verified against the upstream torch pipeline on real
+speech at correlation **0.99999988** (~0.6× realtime on CPU).
+
+Upstream's optional packet-loss concealment (PLC) and 48 kHz PostNet bandwidth extension
+are not shipped — PLC needs a data-dependent CNN-output mask that does not trace, and the
+PostNet depends on `espnet2`. Both are candidate follow-ups.
 
 ## metadenoiser
 

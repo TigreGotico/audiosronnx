@@ -21,6 +21,7 @@ never a runtime dependency.
 | `TigreGotico/audiosronnx-hifiganbwe` | `hifiganbwe_wavenet.onnx` |
 | `TigreGotico/audiosronnx-apbwe` | `apbwe.onnx` |
 | `TigreGotico/audiosronnx-sidon` | `feature_extractor.int8.onnx`, `decoder.onnx` |
+| `TigreGotico/audiosronnx-unipase` | `encoder_adapter.onnx`, `vocoder.onnx` |
 | `TigreGotico/audiosronnx-callenhancer` | `feature_extractor.onnx` (+ `.data`), `feature_extractor.int8.onnx`, `decoder.onnx` |
 | `TigreGotico/audiosronnx-deepfilternet` | `enc.onnx`, `erb_dec.onnx`, `df_dec.onnx` |
 | `TigreGotico/audiosronnx-dpdfnet` | 8 variants across 8 / 16 / 48 kHz |
@@ -48,6 +49,7 @@ pipeline yields audio that sounds plausible and is quietly wrong.
 | mpsenet | correlation 0.99998752 |
 | hifiganbwe | correlation 1.0000 |
 | apbwe | correlation 0.9998 |
+| unipase | correlation 0.99999988 |
 
 ## Export hazards
 
