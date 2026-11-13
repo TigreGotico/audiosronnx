@@ -50,6 +50,11 @@ versioning driven by conventional commits.
   highest published PESQ of the shipped denoisers, over a fixed 401-frame window.
 - **metadenoiser** engine — Meta's causal-Demucs waveform denoiser (dns64 / dns48), run
   over a fixed 10 s window with a crossfaded slide. Weights are CC-BY-NC-4.0.
+- **voiceisolator** engine — Scicom's streaming voice isolator, 16 kHz: keeps one speaker
+  and removes other voices and noise. Live enrollment or an enrollment clip, a push-based
+  `stream()`, the `agent` model's presence gate, and int8 graphs. Upstream declares the
+  license as "other" with no license text. `conversion/export_voiceisolator.py` exports the
+  555 M GPU release with its causal WavLM-Large branch; load it with `model_dir=`.
 - **flowhigh** engine — FLowHigh conditional flow-matching bandwidth extension to 48 kHz
   in 4 Euler steps, with a BigVGAN vocoder; `steps`, `seed` and `merge` controls.
 - `_stft.hamming_window` — periodic Hamming, distinct from the symmetric window Kaldi

@@ -28,6 +28,19 @@ never a runtime dependency.
 | `TigreGotico/audiosronnx-frcrn` | `frcrn.onnx` |
 | `TigreGotico/audiosronnx-mossformer2` | `mossformer2_48k.onnx` |
 | `TigreGotico/audiosronnx-mpsenet` | `mpsenet_dns.onnx`, `mpsenet.onnx` |
+| `Scicom-intl/voice-isolator-cpu` (upstream, not mirrored) | `step.onnx`, `enroll.onnx`, per model and precision |
+
+The 555 M voice isolator is not hosted. Export it yourself:
+
+```bash
+python conversion/export_voiceisolator.py --out ./out/voiceisolator-large
+python conversion/export_voiceisolator.py --sub agent --out ./out/voiceisolator-large-agent
+```
+
+Each export writes `step.onnx` with its 2.2 GB of weights in `step.onnx.data`, `enroll.onnx`
+and `config.json`. Load the directory with `load_denoise("voiceisolator", model_dir=...)`.
+`conversion/check_voiceisolator.py <dir> <speech.wav>` compares an export with upstream's
+PyTorch streaming step on 14 s of audio, past the point where its 10 s rings wrap.
 
 ## Validation
 
@@ -48,6 +61,8 @@ pipeline yields audio that sounds plausible and is quietly wrong.
 | mpsenet | correlation 0.99998752 |
 | hifiganbwe | correlation 1.0000 |
 | apbwe | correlation 0.9998 |
+| voiceisolator (CPU release, both models, fp32 and int8) | max abs err 0.0 vs upstream's ONNX runtime |
+| voiceisolator (555 M, release and agent, gated and ungated) | max abs err 1.2e-7 or better vs upstream `stream_step`, 14 s |
 
 ## Export hazards
 
