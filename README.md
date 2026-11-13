@@ -51,6 +51,7 @@ the extender reconstructs a high band out of the noise.
 | **metadenoiser** | 16 kHz | 19–34 MB | **CC-BY-NC-4.0** | you want a time-domain model and NC is acceptable |
 | **mossformergan** | 16 kHz | 17.7 MB | Apache-2.0 | highest published PESQ (3.47) |
 | **voicefixer** | 44.1 kHz | 415 MB | MIT | *restoration* — noise, reverb, clipping and band loss at once |
+| **voiceisolator** | 16 kHz | 28–89 MB (555 M export: 2.2 GB) | **other** | other people talk over the speaker you want |
 | **deepfilternet** | 48 kHz | ~2 MB | MIT | you already depend on `libdf` |
 
 SNR recovered on one clip at 19 / 11 / 5 dB input SNR: dpdfnet **+4.9 / +10.3 / +13.7 dB**,
@@ -61,8 +62,9 @@ ranks engines consistently but predicts little about babble or codec artefacts.
 **Recommendations:** start with **dpdfnet** — no extra dependencies, 8/16/48 kHz, top-tier
 measured gain. Take **mossformer2** for the best fullband quality, **mossformergan** for the
 best benchmark scores, **gtcrn** when footprint is the constraint, **metadenoiser** for a
-time-domain model. Engines are kept even when something else beats them, so published
-results stay reproducible — `cmgan` is dominated and stays for that reason.
+time-domain model, and **voiceisolator** when other voices are the problem, not noise.
+Engines are kept even when something else beats them, so published results stay
+reproducible — `cmgan` is dominated and stays for that reason.
 
 Full detail in [docs/denoising.md](docs/denoising.md).
 
@@ -98,6 +100,7 @@ Three questions settle it.
 | noisy *and* narrowband | denoise then extend — `dpdfnet` → `lavasr` |
 | telephony, codec-damaged | `callenhancer` (restoration, not extension) |
 | damaged several ways at once | `voicefixer` (restoration) |
+| other voices over the speaker | `voiceisolator` (keeps one speaker) |
 
 **2. What constrains you?**
 
@@ -107,7 +110,7 @@ Three questions settle it.
 | footprint | `gtcrn` (0.54 MB) | `novasr` (0.2 MB) |
 | best quality, fullband | `mossformer2` | `apbwe` |
 | best benchmark scores | `mossformergan` | — |
-| license must be permissive | anything but `metadenoiser` | anything but `callenhancer` |
+| license must be permissive | anything but `metadenoiser` and `voiceisolator` | anything but `callenhancer` |
 
 **3. Do you mind invented detail?**
 

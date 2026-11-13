@@ -28,6 +28,23 @@ never a runtime dependency.
 | `TigreGotico/audiosronnx-frcrn` | `frcrn.onnx` |
 | `TigreGotico/audiosronnx-mossformer2` | `mossformer2_48k.onnx` |
 | `TigreGotico/audiosronnx-mpsenet` | `mpsenet_dns.onnx`, `mpsenet.onnx` |
+| `TigreGotico/audiosronnx-voiceisolator` | `step.onnx`, `enroll.onnx`, `config.json` per model: CPU `/`, `int8/`, `agent/`, `agent/int8/`; 555 M `large/`, `large/agent/` (+ `step.onnx.data`) |
+
+The repositories are gathered in the
+[audiosronnx collection](https://huggingface.co/collections/TigreGotico/audiosronnx-pure-onnx-speech-enhancement-6af87eb6110e592e16d35fe9).
+
+The voice isolator's CPU folders are the upstream graphs unchanged. The `large/` folders
+come from:
+
+```bash
+python conversion/export_voiceisolator.py --out ./out/large
+python conversion/export_voiceisolator.py --sub agent --out ./out/large/agent
+```
+
+Each export writes `step.onnx` with its 2.2 GB of weights in `step.onnx.data`, `enroll.onnx`
+and `config.json`. `load_denoise("voiceisolator", model_dir=...)` loads a local export.
+`conversion/check_voiceisolator.py <dir> <speech.wav>` compares an export with upstream's
+PyTorch streaming step on 14 s of audio, past the point where its 10 s rings wrap.
 
 ## Validation
 
@@ -48,6 +65,8 @@ pipeline yields audio that sounds plausible and is quietly wrong.
 | mpsenet | correlation 0.99998752 |
 | hifiganbwe | correlation 1.0000 |
 | apbwe | correlation 0.9998 |
+| voiceisolator (CPU release, both models, fp32 and int8) | max abs err 0.0 vs upstream's ONNX runtime |
+| voiceisolator (555 M, release and agent, gated and ungated) | max abs err 1.2e-7 or better vs upstream `stream_step`, 14 s |
 
 ## Export hazards
 
