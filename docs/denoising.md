@@ -27,6 +27,7 @@ cannot be loaded as a denoiser by accident.
 | [metadenoiser](#metadenoiser) | 16 kHz | 19–34 MB | **CC-BY-NC-4.0** | time-domain Demucs; non-commercial weights |
 | [mossformergan](#mossformergan) | 16 kHz | 17.7 MB | Apache-2.0 | highest published PESQ (3.47) |
 | [voicefixer](#voicefixer) | 44.1 kHz | 415 MB | MIT | general *restoration*, not denoising alone |
+| [voiceisolator](#voiceisolator) | 16 kHz | 28–89 MB | **other** | keeps one speaker, removes other voices; streaming |
 | [deepfilternet](#deepfilternet) | 48 kHz | ~2 MB | MIT | needs the `deepfilternet` extra |
 
 ## Recommendations
@@ -45,14 +46,15 @@ If you only read one line: **use `dpdfnet`**. It needs no optional dependencies,
 | several defects at once | **voicefixer** | restoration, not denoising: noise + reverb + clipping + band loss |
 | to reproduce published results | **frcrn**, **cmgan**, **mpsenet (`vb`)** | these are the checkpoints those numbers came from |
 | a recording damaged several ways at once | **voicefixer** | restores noise, reverb, clipping and band loss together |
+| to remove other voices, not only noise | **voiceisolator** | target-speaker extraction, enrolled live or from a clip |
 
 Engines are kept even when something else beats them, so a result can be reproduced or an
 architecture compared. `cmgan` is the clearest case: it is dominated on both PESQ and SNR by
 `gtcrn` at a fourteenth of the size, and it stays because a conformer metric-GAN is a
 distinct thing to be able to run.
 
-**Licensing is yours to judge.** `metadenoiser` is CC-BY-NC-4.0 and everything else here is
-MIT or Apache-2.0. The restriction covers the weights, not audio processed with them.
+**Licensing is yours to judge.** `metadenoiser` is CC-BY-NC-4.0. `voiceisolator` declares
+"other" upstream and publishes no license text. Everything else here is MIT or Apache-2.0. The restriction covers the weights, not audio processed with them.
 `audiosronnx list` reports the license of every engine.
 
 ## Choosing
@@ -85,6 +87,7 @@ input SNRs against a fixed noise seed:
 | cmgan | −7.7 dB | −1.5 dB | +3.5 dB |
 | metadenoiser (`dns64`) | +3.2 dB | +6.9 dB | +9.3 dB |
 | mossformergan | +2.6 dB | +8.3 dB | +11.6 dB |
+| voiceisolator | +0.7 dB | +5.8 dB | +7.8 dB |
 
 `dpdfnet` and `mossformer2` are close, trading places either side of ~11 dB input.
 `gtcrn` **saturates**: its gain stops scaling with noise level, which is the cost of
@@ -262,6 +265,70 @@ choose this one deliberately.
 Demucs bakes its padding arithmetic into the trace, so the graphs take a fixed **10 s
 window** and the adapter slides that window with a crossfaded overlap. Reproduces upstream
 to correlation 1.00000000.
+
+## voiceisolator
+
+Scicom's voice isolator (Zolkepli, *The Voice on the Line*, arXiv:2610.35272) keeps **one
+speaker** and removes every other voice as well as the noise. Every other engine here keeps
+all speech, so it is the one to use when the problem is a second person, a TV or a meeting
+room rather than hiss.
+
+```python
+load_denoise("voiceisolator")                          # enrolls live from the input
+load_denoise("voiceisolator", enrollment="caller.wav") # locks onto the voice in a clip
+load_denoise("voiceisolator", model="agent")           # adds the presence gate
+load_denoise("voiceisolator", quantized=True)          # 8-bit graphs, 28 MB
+```
+
+The graphs are the CPU release: a 22 M-parameter distillation of the 555 M GPU model, a
+frame transformer over the last 10 s plus frame and band LSTMs. It is causal, with 10 ms
+hops and 10 ms of delay.
+
+**Enrollment** decides whose voice survives. By default the speaker vector comes from the
+loudest 3 s of the input heard so far. It is re-made every half second until 15.5 s, then
+fixed. Before 3 s the model runs on its learned "no enrollment" vector. An `enrollment`
+clip of the speaker alone replaces the live rule.
+
+**The `agent` model** adds a presence head. Where the speaker is not talking, the output is
+exact digital silence, so a downstream VAD fires less on other voices. `gate="off"` turns
+it off, and a `"THETA:HOLD:THETA_OFF:KEEP_DB"` string sets it by hand.
+
+**Streaming.** `stream()` returns a stream you `push()` 16 kHz audio into, any amount at a
+time. Output lags input by 160 samples, and `flush()` returns the tail:
+
+```python
+iso = load_denoise("voiceisolator")
+s = iso.stream()
+for chunk in mic_chunks:          # 16 kHz float32
+    play(s.push(chunk))
+play(s.flush())
+```
+
+The numpy side reproduces upstream's reference runtime bit for bit, for both models in fp32
+and int8; the tests check this on 22 s of audio. Upstream's voicebot greeting mode is not included.
+
+**The 555 M model.** The downloaded graphs are the CPU release. The full GPU release
+(`Scicom-intl/voice-isolator`, WavLM-Large made causal beside a wider transformer) is not
+hosted; export it with `conversion/export_voiceisolator.py` and load the directory:
+
+```python
+load_denoise("voiceisolator", model_dir="out/voiceisolator-large")
+load_denoise("voiceisolator", model_dir="out/voiceisolator-large-agent")  # with the gate
+```
+
+Its step graph is 2.2 GB and takes a fixed 50 frames, so a stream emits output in 0.5 s
+blocks. On 8 CPU threads it takes about 2 s per second of audio; it was built for a GPU.
+Both models match upstream's PyTorch streaming step to 1.2e-7 or better, with and without
+the gate, past the point where the 10 s attention rings wrap.
+
+Two measured cautions. On broadband noise alone it gains less than `dpdfnet` (table above),
+because removing voices is its job. On a 0 dB mix of a fullband voice and a telephone-band
+voice, it kept the fullband voice even when enrolled on the telephone-band one. The
+enrollment still moved the result by 17 dB toward the enrolled voice.
+
+**License:** the upstream model card declares `license: other` and publishes no license
+text. The weights download from the upstream repository at a pinned revision and are not
+mirrored. Check the terms with the authors before you use it beyond evaluation.
 
 ## deepfilternet
 
