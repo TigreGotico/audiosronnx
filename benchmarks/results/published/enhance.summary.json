@@ -1,0 +1,44 @@
+{
+  "engines": [
+    {
+      "alias": "voicefixer",
+      "kind": "enhance",
+      "license": "MIT",
+      "load_seconds": 6.901,
+      "metrics": {
+        "dnsmos.bak": 3.9195,
+        "dnsmos.ovrl": 2.85,
+        "dnsmos.sig": 3.1772,
+        "log_f0_rmse": 0.8809,
+        "mcd": 10.6337,
+        "sigmos.col": 3.0946,
+        "sigmos.disc": 4.2379,
+        "sigmos.loud": 3.6817,
+        "sigmos.noise": 3.9257,
+        "sigmos.ovrl": 2.5846,
+        "sigmos.reverb": 3.8758,
+        "sigmos.sig": 3.2334,
+        "speaker_similarity": 0.4706,
+        "stoi": 0.6219
+      },
+      "model_bytes": 415446261,
+      "n_files": 2,
+      "note": "",
+      "rtf_median": 2.5749,
+      "status": "ok"
+    }
+  ],
+  "kind": "enhance",
+  "primary": "dnsmos.ovrl",
+  "provenance": {
+    "dataset": "sanchit-gandhi/vctk",
+    "date": "2026-07-23",
+    "degradation": "seeded colored-noise + synthetic reverb + 4 kHz lowpass",
+    "input_rate": null,
+    "limit": 2,
+    "metrics_lib": "speechonnxmetrics",
+    "revision": "73ef4ee7d49a6fed4ea1efd65f82b4c95faeb9de",
+    "seed": 1234,
+    "split": "train"
+  }
+}
