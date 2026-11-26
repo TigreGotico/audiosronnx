@@ -4,7 +4,7 @@
       "alias": "hifiganbwe",
       "kind": "sr",
       "license": "MIT",
-      "load_seconds": 4.346,
+      "load_seconds": 7.27,
       "metrics": {
         "lsd": 9.7306,
         "mel_l1": 0.4558,
@@ -19,14 +19,36 @@
       "model_bytes": 4217287,
       "n_files": 4,
       "note": "",
-      "rtf_median": 1.6673,
+      "rtf_median": 3.1371,
+      "status": "ok"
+    },
+    {
+      "alias": "lavasr",
+      "kind": "sr",
+      "license": "Apache-2.0",
+      "load_seconds": 4.428,
+      "metrics": {
+        "lsd": 39.9114,
+        "mel_l1": 3.1951,
+        "sigmos.col": 3.0673,
+        "sigmos.disc": 4.4669,
+        "sigmos.loud": 3.1542,
+        "sigmos.noise": 2.1934,
+        "sigmos.ovrl": 2.2804,
+        "sigmos.reverb": 4.6124,
+        "sigmos.sig": 3.1293
+      },
+      "model_bytes": 55970480,
+      "n_files": 4,
+      "note": "",
+      "rtf_median": 0.2781,
       "status": "ok"
     },
     {
       "alias": "novasr",
       "kind": "sr",
       "license": "Apache-2.0",
-      "load_seconds": 1.109,
+      "load_seconds": 0.99,
       "metrics": {
         "lsd": 29.4603,
         "mel_l1": 0.7451,
@@ -41,7 +63,7 @@
       "model_bytes": 228736,
       "n_files": 4,
       "note": "",
-      "rtf_median": 0.1805,
+      "rtf_median": 0.4593,
       "status": "ok"
     }
   ],
@@ -49,7 +71,7 @@
   "primary": "sigmos.ovrl",
   "provenance": {
     "dataset": "sanchit-gandhi/vctk",
-    "date": "2026-07-23",
+    "date": "2026-11-26",
     "input_rate": 8000,
     "limit": 4,
     "metrics_lib": "speechonnxmetrics",

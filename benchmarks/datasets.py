@@ -72,23 +72,27 @@ def _to_mono_f32(x: np.ndarray) -> np.ndarray:
 
 
 def _extract_audio(cell) -> tuple[np.ndarray, int]:
-    """Pull ``(mono float32, sample_rate)`` out of a HF audio cell.
+    """``(mono float32, sample_rate)`` of an undecoded HF audio cell ``{"bytes", "path"}``.
 
-    Handles the ``datasets`` 3.x dict form ``{"array", "sampling_rate"}`` and the
-    4.x/5.x ``AudioDecoder`` object exposing ``get_all_samples()``.
+    soundfile decodes the bytes, so ``datasets`` never decodes audio: its 4.x
+    decoder needs ``torchcodec``, and that needs torch.
     """
-    if hasattr(cell, "get_all_samples"):
-        s = cell.get_all_samples()
-        return _to_mono_f32(np.asarray(s.data)), int(s.sample_rate)
-    if isinstance(cell, dict) and "array" in cell:
-        return _to_mono_f32(cell["array"]), int(cell["sampling_rate"])
-    raise TypeError(f"unrecognised audio cell type: {type(cell)!r}")
+    import io
+
+    import soundfile as sf
+
+    audio, sr = sf.read(io.BytesIO(cell["bytes"]), dtype="float32", always_2d=False)
+    return _to_mono_f32(audio), int(sr)
 
 
-def _stream(dataset: str, revision: str, split: str):
-    from datasets import load_dataset
+def _stream(dataset: str, revision: str, split: str, audio_columns: tuple[str, ...]):
+    """The split as a stream, with *audio_columns* left undecoded."""
+    from datasets import Audio, load_dataset
 
-    return load_dataset(dataset, split=split, streaming=True, revision=revision)
+    ds = load_dataset(dataset, split=split, streaming=True, revision=revision)
+    for column in audio_columns:
+        ds = ds.cast_column(column, Audio(decode=False))
+    return ds
 
 
 # --------------------------------------------------------------------------- #
@@ -147,7 +151,7 @@ def _peak_norm(x: np.ndarray, peak: float = 0.95) -> np.ndarray:
 # --------------------------------------------------------------------------- #
 def denoise_samples(limit: int, seed: int) -> Iterator[Sample]:
     """VoiceBank+DEMAND test set — recorded noisy input, clean reference (16 kHz)."""
-    ds = _stream(DENOISE_DATASET, DENOISE_REVISION, DENOISE_SPLIT)
+    ds = _stream(DENOISE_DATASET, DENOISE_REVISION, DENOISE_SPLIT, ("noisy", "clean"))
     for i, row in enumerate(ds):
         if i >= limit:
             break
@@ -158,7 +162,7 @@ def denoise_samples(limit: int, seed: int) -> Iterator[Sample]:
 
 def sr_samples(limit: int, seed: int, input_rate: int) -> Iterator[Sample]:
     """VCTK 48 kHz clean, downsampled to ``input_rate`` — narrowband → fullband task."""
-    ds = _stream(VCTK_DATASET, VCTK_REVISION, VCTK_SPLIT)
+    ds = _stream(VCTK_DATASET, VCTK_REVISION, VCTK_SPLIT, ("audio",))
     for i, row in enumerate(ds):
         if i >= limit:
             break
@@ -175,7 +179,7 @@ def enhance_samples(limit: int, seed: int, snr_db: float = 10.0) -> Iterator[Sam
     ``snr_db`` alternates 5/15 dB across items so the set spans mild and severe
     corruption without a second pass. Clean 48 kHz is the reference.
     """
-    ds = _stream(VCTK_DATASET, VCTK_REVISION, VCTK_SPLIT)
+    ds = _stream(VCTK_DATASET, VCTK_REVISION, VCTK_SPLIT, ("audio",))
     for i, row in enumerate(ds):
         if i >= limit:
             break

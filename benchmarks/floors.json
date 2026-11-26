@@ -6,7 +6,7 @@
   "input_rate": 8000,
   "tracks": {
     "denoise": {"engine": "dpdfnet", "primary": "dnsmos.ovrl", "floor": 3.39},
-    "sr": {"engine": "lavasr", "primary": "sigmos.ovrl", "floor": 2.27},
+    "sr": {"engine": "lavasr", "primary": "sigmos.ovrl", "floor": 2.28},
     "enhance": {"engine": "voicefixer", "primary": "dnsmos.ovrl", "floor": 2.84}
   }
 }
