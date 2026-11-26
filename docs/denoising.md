@@ -31,8 +31,10 @@ cannot be loaded as a denoiser by accident.
 
 ## Measured board
 
-Every denoiser is scored on the **VoiceBank+DEMAND** test set — real recorded noise,
-the same 824 paired files for every engine — with the `speechonnxmetrics` library.
+Every denoiser is scored on the first `--limit` paired files of the **VoiceBank+DEMAND**
+test set — real recorded noise, the same files for every engine. The published board
+(`benchmarks/results/published/denoise.summary.json`) holds 4 files and 2 engines
+(`dpdfnet`, `gtcrn`), scored with the `speechonnxmetrics` library.
 The board is reproducible: `python -m benchmarks.run --kind denoise` regenerates it,
 and `benchmarks/render.py` writes the table below. **DNSMOS OVRL** (a no-reference
 perceptual MOS) is the headline; SI-SDR and STOI report waveform fidelity against the

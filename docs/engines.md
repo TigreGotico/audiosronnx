@@ -31,9 +31,10 @@ high band it produces as invented.
 
 ## Measured board
 
-Every engine is scored on a stratified **VCTK** subset — clean 48 kHz speech downsampled
-to a narrowband input, then reconstructed — with the `speechonnxmetrics` library.
-`python -m benchmarks.run --kind sr` regenerates it. The headline is **SIGMOS OVRL**, a
+Every engine is scored on the first `--limit` rows of the **VCTK** train split, in dataset
+order — clean 48 kHz speech downsampled to a narrowband input, then reconstructed — with the `speechonnxmetrics` library.
+The published board (`benchmarks/results/published/sr.summary.json`) holds 4 rows and
+2 engines (`hifiganbwe`, `novasr`). `python -m benchmarks.run --kind sr` regenerates it. The headline is **SIGMOS OVRL**, a
 no-reference 48 kHz perceptual MOS; LSD and mel-L1 measure spectral faithfulness against
 the true fullband signal. The two axes disagree on purpose: a *generative* engine
 (`sidon`, `callenhancer`, `flowhigh`) can sound excellent on SIGMOS while scoring poorly
