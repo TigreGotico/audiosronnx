@@ -25,7 +25,7 @@ Two details are load-bearing and easy to get wrong:
 Long inputs are processed with a 4 s window and 3 s stride, discarding the transient edge
 of each segment, following upstream's sliding-window decode.
 
-ONNX artifact: ``TigreGotico/audiosronnx-mossformer2`` (Apache-2.0). The graph **must** be
+ONNX artifact: ``AudioSRonnx/mossformer2`` (Apache-2.0). The graph **must** be
 exported with ``do_constant_folding=False`` — see the model card; folding silently bakes in
 the traced sequence length.
 
@@ -46,7 +46,7 @@ from audiosronnx._stft import istft, stft
 from audiosronnx.base import Denoiser, EngineEntry, register_engine
 from audiosronnx.resolver import resolve
 
-_HF_REPO = "TigreGotico/audiosronnx-mossformer2"
+_HF_REPO = "AudioSRonnx/mossformer2"
 _HF_REVISION: Optional[str] = "0d91401f480ab971bb26daa108771c5fc9c8cfeb"
 _ONNX = "mossformer2_48k.onnx"
 
@@ -170,7 +170,7 @@ register_engine(EngineEntry(
         "MossFormer2 (ClearerVoice-Studio): 55M-param hybrid transformer/recurrent mask "
         "predictor, the strongest fullband 48 kHz denoiser here (PESQ 3.16 on "
         "VoiceBank+DEMAND). Kaldi log-mel front-end and mask application in numpy. "
-        "ONNX from TigreGotico/audiosronnx-mossformer2. (Alibaba, Apache-2.0)"
+        "ONNX from AudioSRonnx/mossformer2. (Alibaba, Apache-2.0)"
     ),
     input_sample_rate=_SR,
     output_sample_rate=_SR,

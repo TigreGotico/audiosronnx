@@ -22,7 +22,7 @@ and the decoder tail (960 samples) is trimmed, exactly as the reference demo.
 
 The feature extractor is shipped int8-quantized for CPU; the decoder stays fp32.
 
-ONNX artifact: ``TigreGotico/audiosronnx-sidon`` (MIT).
+ONNX artifact: ``AudioSRonnx/sidon`` (MIT).
 
 Reference
 ---------
@@ -39,7 +39,7 @@ from audiosronnx._kaiser import kaiser_resample
 from audiosronnx.base import EngineEntry, SRModel, register_engine
 from audiosronnx.resolver import resolve
 
-_HF_REPO = "TigreGotico/audiosronnx-sidon"
+_HF_REPO = "AudioSRonnx/sidon"
 _HF_REVISION: Optional[str] = "289a72a48d9e39c4efc3cf79fb3cd05178090292"
 _FE = "feature_extractor.int8.onnx"
 _DEC = "decoder.onnx"
@@ -233,7 +233,7 @@ register_engine(
         description=(
             "Sidon speech restoration: 8-layer w2v-BERT 2.0 feature predictor + DAC "
             "vocoder, 16 kHz -> 48 kHz. SeamlessM4T mel front-end in numpy, int8 "
-            "feature extractor. ONNX from TigreGotico/audiosronnx-sidon. "
+            "feature extractor. ONNX from AudioSRonnx/sidon. "
             "(SARULab-Speech, MIT)"
         ),
         input_sample_rate=_IN_SR,

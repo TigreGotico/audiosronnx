@@ -35,7 +35,7 @@ This engine ships UniPASE's 16 kHz core (denoise + dereverb). Upstream's optiona
 PLC needs a data-dependent CNN-output mask that does not trace, and PostNet depends on
 ``espnet2``. Both are candidate follow-ups. Input at any rate is resampled to 16 kHz.
 
-ONNX artifact: ``TigreGotico/audiosronnx-unipase`` (MIT).
+ONNX artifact: ``AudioSRonnx/unipase`` (MIT).
 
 Reference
 ---------
@@ -54,7 +54,7 @@ from audiosronnx._kaiser import kaiser_resample
 from audiosronnx.base import Denoiser, EngineEntry, register_engine
 from audiosronnx.resolver import resolve
 
-_HF_REPO = "TigreGotico/audiosronnx-unipase"
+_HF_REPO = "AudioSRonnx/unipase"
 _HF_REVISION: Optional[str] = "d8b02fd63974552bd99a8db8fd95ea146155a5c8"
 _ENCODER_ADAPTER = "encoder_adapter.onnx"
 _VOCODER = "vocoder.onnx"
@@ -235,7 +235,7 @@ register_engine(EngineEntry(
         "SSL encoder + Vocos adapter + Vocos vocoder, over a fixed 8 s window. Generative, "
         "so the detail it restores is invented. fp32 WavLM encoder (optional near-lossless "
         "fp16, precision='fp16'); ISTFT in numpy. ONNX from "
-        "TigreGotico/audiosronnx-unipase. (MIT)"
+        "AudioSRonnx/unipase. (MIT)"
     ),
     input_sample_rate=_SR,
     output_sample_rate=_SR,

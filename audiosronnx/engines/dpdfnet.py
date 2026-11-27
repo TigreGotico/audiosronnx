@@ -31,7 +31,7 @@ model                rate    notes
 ``dpdfnet8_8khz``    8 kHz   narrowband, higher quality
 ===================  ======  ==========================================
 
-ONNX artifact: ``TigreGotico/audiosronnx-dpdfnet`` (Apache-2.0).
+ONNX artifact: ``AudioSRonnx/dpdfnet`` (Apache-2.0).
 
 Reference
 ---------
@@ -49,7 +49,7 @@ from audiosronnx._stft import istft, stft, vorbis_window
 from audiosronnx.base import Denoiser, EngineEntry, register_engine
 from audiosronnx.resolver import resolve
 
-_HF_REPO = "TigreGotico/audiosronnx-dpdfnet"
+_HF_REPO = "AudioSRonnx/dpdfnet"
 _HF_REVISION: Optional[str] = "e1b60686e2d6c7bdf2376bef189c670755d94a2c"
 
 #: ``model`` alias -> (onnx filename, native sample rate)
@@ -223,7 +223,7 @@ register_engine(EngineEntry(
     description=(
         "DPDFNet (Ceva): dual-path-RNN DeepFilterNet2 streaming denoiser as a single "
         "stateful ONNX graph, 8/16/48 kHz variants. Vorbis STFT in numpy, no libdf. "
-        "ONNX from TigreGotico/audiosronnx-dpdfnet. (Apache-2.0)"
+        "ONNX from AudioSRonnx/dpdfnet. (Apache-2.0)"
     ),
     input_sample_rate=48000,
     output_sample_rate=48000,

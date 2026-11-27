@@ -62,7 +62,7 @@ versioning driven by conventional commits.
   `stream()`, the `agent` model's presence gate, and int8 graphs. Upstream declares the
   license as "other" with no license text. `model="large"` and `"large-agent"` run the
   555 M GPU release with its causal WavLM-Large branch, exported by
-  `conversion/export_voiceisolator.py`. Graphs in `TigreGotico/audiosronnx-voiceisolator`.
+  `conversion/export_voiceisolator.py`. Graphs in `AudioSRonnx/voiceisolator`.
 - **flowhigh** engine — FLowHigh conditional flow-matching bandwidth extension to 48 kHz
   in 4 Euler steps, with a BigVGAN vocoder; `steps`, `seed` and `merge` controls.
 - `_stft.hamming_window` — periodic Hamming, distinct from the symmetric window Kaldi

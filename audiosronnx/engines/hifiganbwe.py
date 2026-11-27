@@ -9,7 +9,7 @@ The adapter does bandlimited (kaiser) interpolation to 48 kHz in numpy, reflect-
 zero-padding by half the receptive field, then runs the WaveNet ONNX graph and a
 ``tanh``. Input may be any sample rate; output is 48 kHz.
 
-ONNX artifact: ``TigreGotico/audiosronnx-hifiganbwe`` (MIT).
+ONNX artifact: ``AudioSRonnx/hifiganbwe`` (MIT).
 
 Reference
 ---------
@@ -27,7 +27,7 @@ from audiosronnx._kaiser import kaiser_resample
 from audiosronnx.base import EngineEntry, SRModel, register_engine
 from audiosronnx.resolver import resolve
 
-_HF_REPO = "TigreGotico/audiosronnx-hifiganbwe"
+_HF_REPO = "AudioSRonnx/hifiganbwe"
 _HF_REVISION = "d617931bce0671703b0ac0fbe14cf37d243e5f8c"
 _MODEL = "hifiganbwe_wavenet.onnx"
 _OUT_SR = 48000
@@ -95,7 +95,7 @@ register_engine(
         description=(
             "HiFi-GAN+: non-causal WaveNet bandwidth extension, any input -> 48 kHz "
             "with bandlimited (kaiser) interpolation. ~1M params, time-domain. "
-            "ONNX from TigreGotico/audiosronnx-hifiganbwe. (Su et al., ICASSP 2021, MIT)"
+            "ONNX from AudioSRonnx/hifiganbwe. (Su et al., ICASSP 2021, MIT)"
         ),
         input_sample_rate=0,
         output_sample_rate=_OUT_SR,

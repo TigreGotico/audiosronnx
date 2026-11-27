@@ -20,7 +20,7 @@ padding rule, both reproduced here in numpy — the model is sensitive to input 
 the padding changes how much context the recurrence sees, so skipping either measurably
 changes the output.
 
-ONNX artifact: ``TigreGotico/audiosronnx-frcrn`` (Apache-2.0).
+ONNX artifact: ``AudioSRonnx/frcrn`` (Apache-2.0).
 
 Reference
 ---------
@@ -37,7 +37,7 @@ from audiosronnx._kaiser import kaiser_resample
 from audiosronnx.base import Denoiser, EngineEntry, register_engine
 from audiosronnx.resolver import resolve
 
-_HF_REPO = "TigreGotico/audiosronnx-frcrn"
+_HF_REPO = "AudioSRonnx/frcrn"
 _HF_REVISION: Optional[str] = "8d80ae92591dce122c8d59b02886095cd4192c29"
 _ONNX = "frcrn.onnx"
 
@@ -175,7 +175,7 @@ register_engine(EngineEntry(
         "FRCRN (ClearerVoice-Studio): 16 kHz complex-mask denoiser, two stacked UNets "
         "with frequency-recurrent layers. Highest benchmark scores of the shipped "
         "denoisers (PESQ 3.23 on VoiceBank+DEMAND). One waveform-to-waveform ONNX graph. "
-        "ONNX from TigreGotico/audiosronnx-frcrn. (Alibaba, Apache-2.0)"
+        "ONNX from AudioSRonnx/frcrn. (Alibaba, Apache-2.0)"
     ),
     input_sample_rate=_SR,
     output_sample_rate=_SR,

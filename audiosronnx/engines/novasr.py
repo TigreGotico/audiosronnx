@@ -8,7 +8,7 @@ waveform ``[1, 1, T]`` to a 48 kHz waveform ``[1, 1, 3T]``.
 It is extremely fast and memory-light, at lower fidelity than LavaSR. Input other than
 16 kHz is resampled to 16 kHz first.
 
-ONNX artifact: ``TigreGotico/audiosronnx-novasr`` (Apache-2.0).
+ONNX artifact: ``AudioSRonnx/novasr`` (Apache-2.0).
 
 Reference
 ---------
@@ -25,7 +25,7 @@ from audiosronnx.audio import resample
 from audiosronnx.base import EngineEntry, SRModel, register_engine
 from audiosronnx.resolver import resolve
 
-_HF_REPO = "TigreGotico/audiosronnx-novasr"
+_HF_REPO = "AudioSRonnx/novasr"
 _HF_REVISION = "5d92bf1488aae6d92356ef5951c7ef9bf9f9801b"
 _MODEL = "novasr.onnx"
 _IN_SR = 16000
@@ -89,7 +89,7 @@ register_engine(
         description=(
             "NovaSR: ~52 KB conv1d/BigVGAN-snake generator, 16 kHz -> 48 kHz in a "
             "single time-domain pass. Extremely fast and light, lower fidelity than "
-            "LavaSR. ONNX from TigreGotico/audiosronnx-novasr."
+            "LavaSR. ONNX from AudioSRonnx/novasr."
         ),
         input_sample_rate=_IN_SR,
         output_sample_rate=_OUT_SR,

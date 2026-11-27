@@ -25,7 +25,7 @@ checkpoint recovers **+4.8 / +8.8 / +11.7 dB**, while the VoiceBank+DEMAND one m
 is therefore the default; ``vb`` is what the published VoiceBank+DEMAND PESQ figures were
 measured with.
 
-ONNX artifact: ``TigreGotico/audiosronnx-mpsenet`` (MIT).
+ONNX artifact: ``AudioSRonnx/mpsenet`` (MIT).
 
 Export note
 -----------
@@ -51,7 +51,7 @@ from audiosronnx._stft import istft, stft
 from audiosronnx.base import Denoiser, EngineEntry, register_engine
 from audiosronnx.resolver import resolve
 
-_HF_REPO = "TigreGotico/audiosronnx-mpsenet"
+_HF_REPO = "AudioSRonnx/mpsenet"
 _HF_REVISION: Optional[str] = "0c310ef8265f41e131f3d8b45d3fc37e567e1616"
 #: ``model`` alias -> onnx filename. Upstream publishes two checkpoints trained on
 #: different corpora; they differ markedly on broadband noise (see the module docstring).
@@ -157,7 +157,7 @@ register_engine(EngineEntry(
     description=(
         "MP-SENet (Lu et al.): 16 kHz denoiser predicting magnitude and phase spectra in "
         "parallel rather than masking with the noisy phase. 2.26M params / 9.7 MB — the "
-        "smallest full spectral model here. ONNX from TigreGotico/audiosronnx-mpsenet. "
+        "smallest full spectral model here. ONNX from AudioSRonnx/mpsenet. "
         "(MIT)"
     ),
     input_sample_rate=_SR,

@@ -12,7 +12,7 @@ the ``denoiser`` graph is optional and only used with ``denoise=True``.
 
 Input: any sample rate 8-48 kHz (internally processed at 16 kHz). Output: 48 kHz.
 
-ONNX artifacts: ``TigreGotico/audiosronnx-lavasr`` (Apache-2.0).
+ONNX artifacts: ``AudioSRonnx/lavasr`` (Apache-2.0).
 
 References
 ----------
@@ -30,7 +30,7 @@ import numpy as np
 from audiosronnx.base import EngineEntry, SRModel, register_engine
 from audiosronnx.resolver import resolve
 
-_HF_REPO = "TigreGotico/audiosronnx-lavasr"
+_HF_REPO = "AudioSRonnx/lavasr"
 _HF_REVISION = "b3df8a262cf44e59bf84a40b7084f4479ca566b4"
 _BACKBONE = "backbone.onnx"
 _SPEC_HEAD = "spec_head.onnx"
@@ -279,7 +279,7 @@ register_engine(
         description=(
             "LavaSR: Vocos-based bandwidth extension with a Linkwitz-Riley spectral "
             "merge and optional UL-UNAS denoiser. Any input 8-48 kHz -> 48 kHz. "
-            "~52 MB, ~50x realtime on CPU. ONNX from TigreGotico/audiosronnx-lavasr."
+            "~52 MB, ~50x realtime on CPU. ONNX from AudioSRonnx/lavasr."
         ),
         input_sample_rate=0,
         output_sample_rate=_OUT_SR,

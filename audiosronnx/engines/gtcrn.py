@@ -23,7 +23,7 @@ This reproduces the upstream offline recipe, which is a plain centred ``torch.st
     input = torch.stft(mix, 512, 256, 512, torch.hann_window(512).pow(0.5))
     enh   = torch.istft(model(input[None])[0], 512, 256, 512, torch.hann_window(512).pow(0.5))
 
-ONNX artifact: ``TigreGotico/audiosronnx-gtcrn`` (MIT).
+ONNX artifact: ``AudioSRonnx/gtcrn`` (MIT).
 
 Reference
 ---------
@@ -41,7 +41,7 @@ from audiosronnx._stft import istft, stft
 from audiosronnx.base import Denoiser, EngineEntry, register_engine
 from audiosronnx.resolver import resolve
 
-_HF_REPO = "TigreGotico/audiosronnx-gtcrn"
+_HF_REPO = "AudioSRonnx/gtcrn"
 _HF_REVISION: Optional[str] = "eeba5e9636e7e0aad93b25fad17471a9646d2640"
 _ONNX = "gtcrn_simple.onnx"
 
@@ -142,7 +142,7 @@ register_engine(EngineEntry(
     description=(
         "GTCRN: ultra-light 16 kHz speech denoiser (23.7 K params, 33 MMACs, ~0.5 MB "
         "ONNX) as a single stateful graph; sqrt-Hann STFT in numpy. The smallest engine "
-        "here — for embedded / on-device use. ONNX from TigreGotico/audiosronnx-gtcrn. "
+        "here — for embedded / on-device use. ONNX from AudioSRonnx/gtcrn. "
         "(Rong et al., MIT)"
     ),
     input_sample_rate=_SR,

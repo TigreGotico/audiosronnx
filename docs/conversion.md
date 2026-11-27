@@ -16,20 +16,20 @@ never a runtime dependency.
 
 | Repository | Files |
 |------------|-------|
-| `TigreGotico/audiosronnx-lavasr` | `backbone.onnx`, `spec_head.onnx`, `denoiser_core.onnx` |
-| `TigreGotico/audiosronnx-novasr` | `novasr.onnx` |
-| `TigreGotico/audiosronnx-hifiganbwe` | `hifiganbwe_wavenet.onnx` |
-| `TigreGotico/audiosronnx-apbwe` | `apbwe.onnx` |
-| `TigreGotico/audiosronnx-sidon` | `feature_extractor.int8.onnx`, `decoder.onnx` |
-| `TigreGotico/audiosronnx-unipase` | `encoder_adapter.onnx`, `vocoder.onnx`, `encoder_adapter.fp16.onnx`, `vocoder.fp16.onnx` |
-| `TigreGotico/audiosronnx-callenhancer` | `feature_extractor.onnx` (+ `.data`), `feature_extractor.int8.onnx`, `decoder.onnx` |
-| `TigreGotico/audiosronnx-deepfilternet` | `enc.onnx`, `erb_dec.onnx`, `df_dec.onnx` |
-| `TigreGotico/audiosronnx-dpdfnet` | 8 variants across 8 / 16 / 48 kHz |
-| `TigreGotico/audiosronnx-gtcrn` | `gtcrn_simple.onnx` |
-| `TigreGotico/audiosronnx-frcrn` | `frcrn.onnx` |
-| `TigreGotico/audiosronnx-mossformer2` | `mossformer2_48k.onnx` |
-| `TigreGotico/audiosronnx-mpsenet` | `mpsenet_dns.onnx`, `mpsenet.onnx` |
-| `TigreGotico/audiosronnx-voiceisolator` | `step.onnx`, `enroll.onnx`, `config.json` per model: CPU `/`, `int8/`, `agent/`, `agent/int8/`; 555 M `large/`, `large/agent/` (+ `step.onnx.data`) |
+| `AudioSRonnx/lavasr` | `backbone.onnx`, `spec_head.onnx`, `denoiser_core.onnx` |
+| `AudioSRonnx/novasr` | `novasr.onnx` |
+| `AudioSRonnx/hifiganbwe` | `hifiganbwe_wavenet.onnx` |
+| `AudioSRonnx/apbwe` | `apbwe.onnx` |
+| `AudioSRonnx/sidon` | `feature_extractor.int8.onnx`, `decoder.onnx` |
+| `AudioSRonnx/unipase` | `encoder_adapter.onnx`, `vocoder.onnx`, `encoder_adapter.fp16.onnx`, `vocoder.fp16.onnx` |
+| `AudioSRonnx/callenhancer` | `feature_extractor.onnx` (+ `.data`), `feature_extractor.int8.onnx`, `decoder.onnx` |
+| `AudioSRonnx/deepfilternet` | `enc.onnx`, `erb_dec.onnx`, `df_dec.onnx` |
+| `AudioSRonnx/dpdfnet` | 8 variants across 8 / 16 / 48 kHz |
+| `AudioSRonnx/gtcrn` | `gtcrn_simple.onnx` |
+| `AudioSRonnx/frcrn` | `frcrn.onnx` |
+| `AudioSRonnx/mossformer2` | `mossformer2_48k.onnx` |
+| `AudioSRonnx/mpsenet` | `mpsenet_dns.onnx`, `mpsenet.onnx` |
+| `AudioSRonnx/voiceisolator` | `step.onnx`, `enroll.onnx`, `config.json` per model: CPU `/`, `int8/`, `agent/`, `agent/int8/`; 555 M `large/`, `large/agent/` (+ `step.onnx.data`) |
 
 The repositories are gathered in the
 [audiosronnx collection](https://huggingface.co/collections/TigreGotico/audiosronnx-pure-onnx-speech-enhancement-6af87eb6110e592e16d35fe9).

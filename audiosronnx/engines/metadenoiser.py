@@ -23,7 +23,7 @@ bakes in: a dynamic-length export is correct only at the length it was traced at
 published graphs therefore take a **fixed 10 s window**, and this adapter slides that window
 with a crossfaded overlap, the same approach ``dpdfnet`` uses for long audio.
 
-ONNX artifact: ``TigreGotico/audiosronnx-metadenoiser`` (CC-BY-NC-4.0).
+ONNX artifact: ``AudioSRonnx/metadenoiser`` (CC-BY-NC-4.0).
 
 Reference
 ---------
@@ -40,7 +40,7 @@ from audiosronnx._kaiser import kaiser_resample
 from audiosronnx.base import Denoiser, EngineEntry, register_engine
 from audiosronnx.resolver import resolve
 
-_HF_REPO = "TigreGotico/audiosronnx-metadenoiser"
+_HF_REPO = "AudioSRonnx/metadenoiser"
 _HF_REVISION: Optional[str] = "9a648aa278202de97d909dc82595e0899ccf4c66"
 #: ``model`` alias -> onnx filename. dns64 is the larger, higher-quality variant.
 _MODELS: Dict[str, str] = {"dns64": "dns64.onnx", "dns48": "dns48.onnx"}
@@ -154,7 +154,7 @@ register_engine(EngineEntry(
         "Meta Denoiser (Defossez et al.): causal Demucs operating directly on the "
         "waveform — the only time-domain denoiser here. dns64 / dns48 variants, run over "
         "a fixed 10 s window. Weights are CC-BY-NC-4.0. ONNX from "
-        "TigreGotico/audiosronnx-metadenoiser."
+        "AudioSRonnx/metadenoiser."
     ),
     input_sample_rate=_SR,
     output_sample_rate=_SR,
