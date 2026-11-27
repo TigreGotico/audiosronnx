@@ -57,3 +57,59 @@ def test_read_fixture(speech16k_path):
     assert sr == 16000
     assert audio.ndim == 1
     assert audio.size > 0
+
+
+def _sine_wav_bytes(tmp_path, sr=22050):
+    import soundfile as sf
+    t = np.arange(sr // 10) / sr
+    x = (0.5 * np.sin(2 * np.pi * 440 * t)).astype(np.float32)
+    path = str(tmp_path / "sine.wav")
+    sf.write(path, x, sr, subtype="PCM_16")
+    with open(path, "rb") as f:
+        return path, f.read()
+
+
+def test_load_audio_wav_bytes_match_soundfile(tmp_path):
+    import soundfile as sf
+    from audiosronnx.audio import load_audio
+    path, data = _sine_wav_bytes(tmp_path)
+    expected, expected_sr = sf.read(path, dtype="float32")
+    out, sr = load_audio(data)
+    assert sr == expected_sr == 22050
+    np.testing.assert_array_equal(out, expected)
+
+
+def test_load_audio_wav_bytes_ignore_stated_rate(tmp_path):
+    from audiosronnx.audio import load_audio
+    _, data = _sine_wav_bytes(tmp_path)
+    out, sr = load_audio(data, sample_rate=16000)
+    assert sr == 22050
+    assert out.shape == (2205,)
+
+
+def test_load_audio_raw_pcm_with_rate():
+    from audiosronnx.audio import load_audio
+    pcm = np.array([0, 16384, -16384, 32767], dtype="<i2").tobytes()
+    out, sr = load_audio(pcm, sample_rate=16000)
+    assert sr == 16000
+    np.testing.assert_array_equal(out, np.array([0, 0.5, -0.5, 32767 / 32768], dtype=np.float32))
+
+
+def test_load_audio_raw_pcm_without_rate_raises():
+    import pytest
+    from audiosronnx.audio import load_audio
+    pcm = np.array([0, 1000, -1000], dtype="<i2").tobytes()
+    with pytest.raises(ValueError, match="RIFF/WAVE.*sample_rate="):
+        load_audio(pcm)
+
+
+def test_resample_surfaces_scipy_runtime_error(monkeypatch):
+    import pytest
+    import scipy.signal
+
+    def boom(*a, **k):
+        raise RuntimeError("scipy failed")
+
+    monkeypatch.setattr(scipy.signal, "resample_poly", boom)
+    with pytest.raises(RuntimeError, match="scipy failed"):
+        resample(np.zeros(160, dtype=np.float32), 16000, 48000)

@@ -75,3 +75,22 @@ def test_upscale_dir(tmp_path, speech16k_path, speech8k_path):
 
 def test_sample_rate_property():
     assert DummySR().sample_rate == 48000
+
+
+class RecordingSR(SRModel):
+    output_sample_rate = 48000
+    input_sample_rate = 0
+
+    def _upscale_array(self, audio: np.ndarray, sample_rate: int) -> np.ndarray:
+        self.seen = (audio, sample_rate)
+        return audio
+
+
+def test_upscale_wav_bytes_uses_header_rate(tmp_path, speech16k_path):
+    m = RecordingSR()
+    with open(speech16k_path, "rb") as f:
+        data = f.read()
+    m.upscale(data)
+    expected, expected_sr = read_wav(speech16k_path)
+    assert m.seen[1] == expected_sr == 16000
+    np.testing.assert_array_equal(m.seen[0], expected)
