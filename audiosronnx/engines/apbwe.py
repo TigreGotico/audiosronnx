@@ -10,7 +10,7 @@ The shipped model is the ``12kto48k`` checkpoint: it treats the input as ~12 kHz
 content, so an input at any rate is bandlimited to 12 kHz and interpolated to 48 kHz
 before analysis. Output is 48 kHz.
 
-ONNX artifact: ``TigreGotico/audiosronnx-apbwe`` (MIT).
+ONNX artifact: ``AudioSRonnx/apbwe`` (MIT).
 
 Reference
 ---------
@@ -28,7 +28,7 @@ from audiosronnx._stft import istft, stft
 from audiosronnx.base import EngineEntry, SRModel, register_engine
 from audiosronnx.resolver import resolve
 
-_HF_REPO = "TigreGotico/audiosronnx-apbwe"
+_HF_REPO = "AudioSRonnx/apbwe"
 _HF_REVISION = "22d116972f09802273d9e26851f004da0bfbd58a"
 _MODEL = "apbwe.onnx"
 _OUT_SR = 48000
@@ -107,7 +107,7 @@ register_engine(
         description=(
             "AP-BWE: dual-ConvNeXt amplitude-phase bandwidth extension in the STFT "
             "domain, input -> 48 kHz (12 kHz-band model). Highest LSD accuracy of the "
-            "shipped engines. ONNX from TigreGotico/audiosronnx-apbwe. (Lu et al., MIT)"
+            "shipped engines. ONNX from AudioSRonnx/apbwe. (Lu et al., MIT)"
         ),
         input_sample_rate=0,
         output_sample_rate=_OUT_SR,

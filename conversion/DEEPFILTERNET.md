@@ -20,7 +20,7 @@ those directly:
 | `erb_dec.onnx` | `emb`, `e3`, `e2`, `e1`, `e0` | `m[1,1,T,32]` — ERB gain mask |
 | `df_dec.onnx` | `emb`, `c0` | `coefs[1,T,96,10]` — deep-filter taps |
 
-Mirrored to `TigreGotico/audiosronnx-deepfilternet`.
+Mirrored to `AudioSRonnx/deepfilternet`.
 
 ## No torch
 

@@ -24,7 +24,7 @@ peak-normalised to 0.97.
 
 The feature extractor is shipped int8-quantized for CPU; the decoder stays fp32.
 
-ONNX artifact: ``TigreGotico/audiosronnx-callenhancer`` (CC-BY-NC-4.0).
+ONNX artifact: ``AudioSRonnx/callenhancer`` (CC-BY-NC-4.0).
 
 Reference
 ---------
@@ -42,7 +42,7 @@ from audiosronnx.base import EngineEntry, SRModel, register_engine
 from audiosronnx.engines.sidon import seamless_fbank
 from audiosronnx.resolver import resolve
 
-_HF_REPO = "TigreGotico/audiosronnx-callenhancer"
+_HF_REPO = "AudioSRonnx/callenhancer"
 _HF_REVISION: Optional[str] = "302682459d18c584710d162246e1b8265ab7f1cb"
 _DEC = "decoder.onnx"
 #: feature-extractor graph per precision. ``fp32`` is full-fidelity (weights ride in an
@@ -211,7 +211,7 @@ register_engine(
             "CallEnhancer call-centre speech restoration: full 24-layer w2v-BERT 2.0 "
             "feature predictor (LoRA-merged) + DAC vocoder, 16 kHz -> 48 kHz. SeamlessM4T "
             "mel front-end in numpy; fp32 feature extractor by default (int8 available, "
-            "smaller but lossy). ONNX from TigreGotico/audiosronnx-callenhancer. "
+            "smaller but lossy). ONNX from AudioSRonnx/callenhancer. "
             "(Scicom-intl, CC-BY-NC-4.0)"
         ),
         input_sample_rate=_IN_SR,

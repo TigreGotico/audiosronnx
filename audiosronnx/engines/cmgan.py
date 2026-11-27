@@ -26,7 +26,7 @@ makes audio sound better and match the reference waveform less. Every engine her
 on an SNR-shaped objective gains on both, so reach for cmgan only when perceptual quality
 is the target and waveform fidelity is not.
 
-ONNX artifact: ``TigreGotico/audiosronnx-cmgan`` (MIT).
+ONNX artifact: ``AudioSRonnx/cmgan`` (MIT).
 
 Export note
 -----------
@@ -50,7 +50,7 @@ from audiosronnx._stft import hamming_window, istft, stft
 from audiosronnx.base import Denoiser, EngineEntry, register_engine
 from audiosronnx.resolver import resolve
 
-_HF_REPO = "TigreGotico/audiosronnx-cmgan"
+_HF_REPO = "AudioSRonnx/cmgan"
 _HF_REVISION: Optional[str] = "fbd39dc56f3dcaae3934873a2a8c3bf8ef1a1d71"
 _ONNX = "cmgan.onnx"
 
@@ -150,7 +150,7 @@ register_engine(EngineEntry(
     description=(
         "CMGAN (Cao et al.): conformer-based metric-GAN denoiser, 16 kHz. Masked magnitude "
         "plus an additive complex residual, so it corrects phase rather than reusing it. "
-        "1.83M params / 7.8 MB. ONNX from TigreGotico/audiosronnx-cmgan. (MIT)"
+        "1.83M params / 7.8 MB. ONNX from AudioSRonnx/cmgan. (MIT)"
     ),
     input_sample_rate=_SR,
     output_sample_rate=_SR,

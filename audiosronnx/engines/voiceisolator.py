@@ -35,7 +35,7 @@ VAD is triggered less by other voices. ``quantized=True`` takes the 8-bit export
 ``conversion/export_voiceisolator.py``. Its step graph carries the causal WavLM-Large branch
 as well, takes a fixed 50 frames (0.5 s) per step, and is about 2.2 GB.
 
-ONNX artifact: ``TigreGotico/audiosronnx-voiceisolator``, the CPU graphs unchanged and the
+ONNX artifact: ``AudioSRonnx/voiceisolator``, the CPU graphs unchanged and the
 555 M exports.
 
 **License:** the upstream model card declares ``license: other`` and publishes no license
@@ -63,7 +63,7 @@ from audiosronnx.audio import read_wav, to_float32_mono
 from audiosronnx.base import Denoiser, EngineEntry, register_engine
 from audiosronnx.resolver import resolve
 
-_HF_REPO = "TigreGotico/audiosronnx-voiceisolator"
+_HF_REPO = "AudioSRonnx/voiceisolator"
 _HF_REVISION: Optional[str] = "14e6b4c6a10e1e28285d9ddd98abc4dd3c8e3dc8"
 #: ``model`` alias -> directory of its config.json and graphs in the repository.
 _MODELS: Dict[str, str] = {
@@ -537,7 +537,7 @@ register_engine(EngineEntry(
         "(target-speaker extraction), 16 kHz, causal and streaming with 10 ms delay. "
         "22 M-param CPU distillation; live enrollment from the loudest 3 s or from a clip; "
         "'agent' models add a presence gate; int8 export; 'large' = the 555 M GPU release. "
-        "ONNX from TigreGotico/audiosronnx-voiceisolator (Zolkepli, arXiv:2610.35272; "
+        "ONNX from AudioSRonnx/voiceisolator (Zolkepli, arXiv:2610.35272; "
         "license: other)"
     ),
     input_sample_rate=_SR,

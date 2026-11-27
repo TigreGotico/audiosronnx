@@ -22,7 +22,7 @@ deterministic by default. Pass ``seed=None`` for upstream's behaviour.
 More Euler steps trade compute for fidelity; ``steps=4`` is upstream's default and the
 setting its published results use.
 
-ONNX artifacts: ``TigreGotico/audiosronnx-flowhigh`` (MIT), which also carries the BigVGAN
+ONNX artifacts: ``AudioSRonnx/flowhigh`` (MIT), which also carries the BigVGAN
 48 kHz vocoder (NVIDIA, MIT).
 
 Export note
@@ -48,7 +48,7 @@ from audiosronnx._stft import istft, stft
 from audiosronnx.base import EngineEntry, SRModel, register_engine
 from audiosronnx.resolver import resolve
 
-_HF_REPO = "TigreGotico/audiosronnx-flowhigh"
+_HF_REPO = "AudioSRonnx/flowhigh"
 _HF_REVISION: Optional[str] = "0e9984c96ee5e61188c4506ebb4743e061c557cb"
 _FLOW = "flowfield.onnx"
 _VOCODER = "bigvgan.onnx"
@@ -260,7 +260,7 @@ register_engine(EngineEntry(
     description=(
         "FLowHigh (Yun et al., ICASSP 2025): conditional flow-matching bandwidth "
         "extension to 48 kHz in 4 Euler steps, with a BigVGAN vocoder. Log-mel front-end, "
-        "ODE loop and spectral merge in numpy. ONNX from TigreGotico/audiosronnx-flowhigh. "
+        "ODE loop and spectral merge in numpy. ONNX from AudioSRonnx/flowhigh. "
         "(MIT)"
     ),
     input_sample_rate=0,

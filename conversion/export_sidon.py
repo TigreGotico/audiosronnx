@@ -19,7 +19,7 @@ is *not* exported — it stays in numpy in the adapter (``engines/sidon.py``), m
 repo's "no torch at runtime, STFT/mel in numpy" rule. This script also parity-checks that
 numpy front-end against ``transformers.SeamlessM4TFeatureExtractor``.
 
-ONNX artifact: ``TigreGotico/audiosronnx-sidon`` (MIT).
+ONNX artifact: ``AudioSRonnx/sidon`` (MIT).
 
 Usage::
 

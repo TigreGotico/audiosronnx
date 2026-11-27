@@ -24,7 +24,7 @@ The analysis graph is length-specialised, so it takes a fixed **5 s (501-frame)*
 this adapter slides it with a crossfaded overlap. Upstream's own ``restore_inmem`` segments
 long audio too.
 
-ONNX artifact: ``TigreGotico/audiosronnx-voicefixer`` (MIT).
+ONNX artifact: ``AudioSRonnx/voicefixer`` (MIT).
 
 Reference
 ---------
@@ -42,7 +42,7 @@ from audiosronnx._stft import istft, stft
 from audiosronnx.base import Denoiser, EngineEntry, register_engine
 from audiosronnx.resolver import resolve
 
-_HF_REPO = "TigreGotico/audiosronnx-voicefixer"
+_HF_REPO = "AudioSRonnx/voicefixer"
 _HF_REVISION: Optional[str] = "aa259fa578b9d5f4c76fda3cd967f73542b0e15b"
 _ANALYSIS = "analysis.onnx"
 _VOCODER = "vocoder.onnx"
@@ -181,7 +181,7 @@ register_engine(EngineEntry(
         "VoiceFixer (Liu et al.): general 44.1 kHz speech restoration — noise, reverb, "
         "clipping and bandwidth loss together, rather than any one of them. ResUNet mel "
         "predictor plus a TFGAN vocoder, over a fixed 5 s window. Generative, so the "
-        "detail it restores is invented. ONNX from TigreGotico/audiosronnx-voicefixer. "
+        "detail it restores is invented. ONNX from AudioSRonnx/voicefixer. "
         "(MIT)"
     ),
     input_sample_rate=_SR,

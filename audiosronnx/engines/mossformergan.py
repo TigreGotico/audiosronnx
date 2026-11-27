@@ -19,7 +19,7 @@ elsewhere, even with constant folding disabled. The published graph therefore ta
 **401-frame** window (about 2.5 s at 16 kHz with a 100-sample hop), and this adapter slides
 it with a crossfaded overlap. Upstream's own decode segments long audio for the same reason.
 
-ONNX artifact: ``TigreGotico/audiosronnx-mossformergan`` (Apache-2.0).
+ONNX artifact: ``AudioSRonnx/mossformergan`` (Apache-2.0).
 
 Export note
 -----------
@@ -43,7 +43,7 @@ from audiosronnx._stft import hamming_window, istft, stft
 from audiosronnx.base import Denoiser, EngineEntry, register_engine
 from audiosronnx.resolver import resolve
 
-_HF_REPO = "TigreGotico/audiosronnx-mossformergan"
+_HF_REPO = "AudioSRonnx/mossformergan"
 _HF_REVISION: Optional[str] = "5f471c9d92dda80c0883cc850227fd878b334b08"
 _ONNX = "mossformergan.onnx"
 
@@ -171,7 +171,7 @@ register_engine(EngineEntry(
         "MossFormerGAN (ClearerVoice-Studio): MossFormer attention with a metric-GAN "
         "objective — the highest published PESQ (3.47) of any model surveyed here. Masked "
         "magnitude plus an additive complex residual, run over a fixed 401-frame window. "
-        "ONNX from TigreGotico/audiosronnx-mossformergan. (Alibaba, Apache-2.0)"
+        "ONNX from AudioSRonnx/mossformergan. (Alibaba, Apache-2.0)"
     ),
     input_sample_rate=_SR,
     output_sample_rate=_SR,

@@ -24,7 +24,7 @@ The SeamlessM4T mel front-end is *not* exported — it stays in numpy in the ada
 repo's "no torch at runtime, STFT/mel in numpy" rule. This script parity-checks that
 numpy front-end against ``transformers.SeamlessM4TFeatureExtractor``.
 
-ONNX artifact: ``TigreGotico/audiosronnx-callenhancer`` (CC-BY-NC-4.0).
+ONNX artifact: ``AudioSRonnx/callenhancer`` (CC-BY-NC-4.0).
 
 Usage::
 

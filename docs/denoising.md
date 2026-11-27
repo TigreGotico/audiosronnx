@@ -411,7 +411,7 @@ enrollment still moved the result by 17 dB toward the enrolled voice.
 
 **License:** the upstream model card declares `license: other` and publishes no license
 text. The terms of the upstream repositories apply. The graphs download from
-`TigreGotico/audiosronnx-voiceisolator`.
+`AudioSRonnx/voiceisolator`.
 
 ## deepfilternet
 
