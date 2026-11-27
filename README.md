@@ -52,6 +52,7 @@ the extender reconstructs a high band out of the noise.
 | **mossformergan** | 16 kHz | 17.7 MB | Apache-2.0 | highest published PESQ (3.47) |
 | **voicefixer** | 44.1 kHz | 415 MB | MIT | *restoration* — noise, reverb, clipping and band loss at once |
 | **voiceisolator** | 16 kHz | 28–89 MB (555 M export: 2.2 GB) | **other** | other people talk over the speaker you want |
+| **unipase** | 16 kHz | 1.7 GB (fp16 ~1.2 GB) | MIT | *universal enhancement* — noise and reverb removed generatively via a WavLM encoder |
 | **deepfilternet** | 48 kHz | ~2 MB | MIT | you already depend on `libdf` |
 
 SNR recovered on one clip at 19 / 11 / 5 dB input SNR: dpdfnet **+4.9 / +10.3 / +13.7 dB**,
@@ -122,6 +123,12 @@ reconstruction, and SNR against a clean reference is the wrong yardstick for the
 Engines are kept even when something else beats them, so published results stay
 reproducible and distinct architectures stay runnable. `cmgan` is the clearest example: it
 is dominated on both PESQ and SNR by `gtcrn` at a fourteenth of the size, and it stays.
+
+These answers are backed by a reproducible board: every engine is scored on a fixed,
+externally-hosted gold set with the `speechonnxmetrics` library, the same files for all of
+them. The measured tables live in [docs/denoising.md](docs/denoising.md) (denoising and
+restoration) and [docs/engines.md](docs/engines.md) (bandwidth extension); regenerate them
+with `python -m benchmarks.run` (see [benchmarks/](benchmarks/)).
 
 ## Documentation
 

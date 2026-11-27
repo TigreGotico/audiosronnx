@@ -21,6 +21,7 @@ never a runtime dependency.
 | `TigreGotico/audiosronnx-hifiganbwe` | `hifiganbwe_wavenet.onnx` |
 | `TigreGotico/audiosronnx-apbwe` | `apbwe.onnx` |
 | `TigreGotico/audiosronnx-sidon` | `feature_extractor.int8.onnx`, `decoder.onnx` |
+| `TigreGotico/audiosronnx-unipase` | `encoder_adapter.onnx`, `vocoder.onnx`, `encoder_adapter.fp16.onnx`, `vocoder.fp16.onnx` |
 | `TigreGotico/audiosronnx-callenhancer` | `feature_extractor.onnx` (+ `.data`), `feature_extractor.int8.onnx`, `decoder.onnx` |
 | `TigreGotico/audiosronnx-deepfilternet` | `enc.onnx`, `erb_dec.onnx`, `df_dec.onnx` |
 | `TigreGotico/audiosronnx-dpdfnet` | 8 variants across 8 / 16 / 48 kHz |
@@ -67,6 +68,7 @@ pipeline yields audio that sounds plausible and is quietly wrong.
 | apbwe | correlation 0.9998 |
 | voiceisolator (CPU release, both models, fp32 and int8) | max abs err 0.0 vs upstream's ONNX runtime |
 | voiceisolator (555 M, release and agent, gated and ungated) | max abs err 1.2e-7 or better vs upstream `stream_step`, 14 s |
+| unipase | correlation 0.99999988 (fp16 variant: 0.99993) |
 
 ## Export hazards
 

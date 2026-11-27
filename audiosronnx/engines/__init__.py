@@ -32,6 +32,7 @@ import audiosronnx.engines.metadenoiser  # noqa: F401,E402  (denoise)
 import audiosronnx.engines.mossformergan  # noqa: F401,E402  (denoise)
 import audiosronnx.engines.voicefixer  # noqa: F401,E402  (enhance)
 import audiosronnx.engines.voiceisolator  # noqa: F401,E402  (denoise)
+import audiosronnx.engines.unipase  # noqa: F401,E402  (enhance)
 
 __all__ = [
     "SRModel",

@@ -1,0 +1,58 @@
+{
+  "engines": [
+    {
+      "alias": "dpdfnet",
+      "kind": "denoise",
+      "license": "Apache-2.0",
+      "load_seconds": 2.735,
+      "metrics": {
+        "dnsmos.bak": 4.1931,
+        "dnsmos.ovrl": 3.3983,
+        "dnsmos.sig": 3.5892,
+        "dnsmos_p808": 3.9296,
+        "estoi": 0.8858,
+        "si_sdr": 20.3737,
+        "speaker_similarity": 0.9363,
+        "stoi": 0.9335
+      },
+      "model_bytes": 10493337,
+      "n_files": 4,
+      "note": "",
+      "rtf_median": 1.5298,
+      "status": "ok"
+    },
+    {
+      "alias": "gtcrn",
+      "kind": "denoise",
+      "license": "MIT",
+      "load_seconds": 0.447,
+      "metrics": {
+        "dnsmos.bak": 3.9803,
+        "dnsmos.ovrl": 3.173,
+        "dnsmos.sig": 3.4771,
+        "dnsmos_p808": 3.7651,
+        "estoi": 0.8746,
+        "si_sdr": 12.7544,
+        "speaker_similarity": 0.9615,
+        "stoi": 0.9338
+      },
+      "model_bytes": 535638,
+      "n_files": 4,
+      "note": "",
+      "rtf_median": 0.3123,
+      "status": "ok"
+    }
+  ],
+  "kind": "denoise",
+  "primary": "dnsmos.ovrl",
+  "provenance": {
+    "dataset": "JacobLinCool/VoiceBank-DEMAND-16k",
+    "date": "2026-07-23",
+    "input_rate": null,
+    "limit": 4,
+    "metrics_lib": "speechonnxmetrics",
+    "revision": "4497db342d7312978c45690591fda86117831940",
+    "seed": 1234,
+    "split": "test"
+  }
+}

@@ -28,7 +28,49 @@ cannot be loaded as a denoiser by accident.
 | [mossformergan](#mossformergan) | 16 kHz | 17.7 MB | Apache-2.0 | highest published PESQ (3.47) |
 | [voicefixer](#voicefixer) | 44.1 kHz | 415 MB | MIT | general *restoration*, not denoising alone |
 | [voiceisolator](#voiceisolator) | 16 kHz | 28–89 MB | **other** | keeps one speaker, removes other voices; streaming |
+| [unipase](#unipase) | 16 kHz | 1.7 GB (fp16 ~1.2 GB) | MIT | *universal enhancement* — noise + reverb, generative WavLM |
 | [deepfilternet](#deepfilternet) | 48 kHz | ~2 MB | MIT | needs the `deepfilternet` extra |
+
+## Measured board
+
+Every denoiser is scored on the first `--limit` paired files of the **VoiceBank+DEMAND**
+test set — real recorded noise, the same files for every engine. The published board
+(`benchmarks/results/published/denoise.summary.json`) holds 4 files and 2 engines
+(`dpdfnet`, `gtcrn`), scored with the `speechonnxmetrics` library.
+The board is reproducible: `python -m benchmarks.run --kind denoise` regenerates it,
+and `benchmarks/render.py` writes the table below. **DNSMOS OVRL** (a no-reference
+perceptual MOS) is the headline; SI-SDR and STOI report waveform fidelity against the
+clean reference. Read the two together — a metric-GAN can raise perceptual MOS while
+moving the waveform away from the reference, and only the pair reveals that.
+
+<!-- benchmark:denoise:start -->
+
+_**Provisional — full run pending.** Smoke subset only._ Scored with `speechonnxmetrics`; dataset `JacobLinCool/VoiceBank-DEMAND-16k`, rev `4497db342d`, seed 1234, 4 files, 2026-07-23.
+
+| Engine | DNSMOS | SIG | SI-SDR | STOI | Spk-sim | RTF | Size | License |
+|---|---|---|---|---|---|---|---|---|
+| **dpdfnet** — SOTA (measured) | 3.398 | 3.589 | 20.374 | 0.933 | 0.936 | 1.530× | 10.5 MB | Apache-2.0 |
+| **gtcrn** | 3.173 | 3.477 | 12.754 | 0.934 | 0.962 | 0.312× | 536 KB | MIT |
+
+Higher is better except columns marked ↓. Non-reference MOS (DNSMOS, SIGMOS) scores the output alone; intrusive columns compare against the clean reference. `Spk-sim` is speaker-embedding cosine — a low value flags an engine that resynthesised a different-sounding voice.
+
+<!-- benchmark:denoise:end -->
+
+The restoration engine `voicefixer` also runs on a compound-degradation board (noise +
+reverb + band loss stacked), where it is scored as a holistic restorer rather than a
+plain denoiser:
+
+<!-- benchmark:enhance:start -->
+
+_**Provisional — full run pending.** Smoke subset only._ Scored with `speechonnxmetrics`; dataset `sanchit-gandhi/vctk`, rev `73ef4ee7d4`, seed 1234, 2 files, 2026-07-23.
+
+| Engine | DNSMOS | SIGMOS | STOI | MCD↓ | Spk-sim | RTF | Size | License |
+|---|---|---|---|---|---|---|---|---|
+| **voicefixer** — SOTA (measured) | 2.850 | 2.585 | 0.622 | 10.634 | 0.471 | 2.575× | 415.4 MB | MIT |
+
+Higher is better except columns marked ↓. Non-reference MOS (DNSMOS, SIGMOS) scores the output alone; intrusive columns compare against the clean reference. `Spk-sim` is speaker-embedding cosine — a low value flags an engine that resynthesised a different-sounding voice.
+
+<!-- benchmark:enhance:end -->
 
 ## Recommendations
 
@@ -47,6 +89,7 @@ If you only read one line: **use `dpdfnet`**. It needs no optional dependencies,
 | to reproduce published results | **frcrn**, **cmgan**, **mpsenet (`vb`)** | these are the checkpoints those numbers came from |
 | a recording damaged several ways at once | **voicefixer** | restores noise, reverb, clipping and band loss together |
 | to remove other voices, not only noise | **voiceisolator** | target-speaker extraction, enrolled live or from a clip |
+| noise + reverb, SSL-model quality, size no object | **unipase** | generative WavLM enhancement; 16 kHz, 1.7 GB |
 
 Engines are kept even when something else beats them, so a result can be reproduced or an
 architecture compared. `cmgan` is the clearest case: it is dominated on both PESQ and SNR by
@@ -245,6 +288,46 @@ the table above.
 At 415 MB across two graphs it is the heaviest engine in the library, and it works over a
 fixed 5 s window that the adapter slides. Verified against upstream on real speech at
 correlation 0.99999996.
+
+## unipase
+
+UniPASE (Rong et al., *IEEE TASLP*): **generative universal speech enhancement** — noise
+and reverberation removed in a single feed-forward pass at 16 kHz. Its core is a de-noised
+WavLM-Large (`DeWavLM-Omni`) SSL encoder: the L1 and L24 representations are fused by a
+Vocos adapter and resynthesised by a Vocos vocoder. The encoder and adapter fuse into one
+ONNX graph; the vocoder is a second graph whose Vocos "same"-padding ISTFT runs in numpy
+(there is no ONNX `irfft`).
+
+Like `voicefixer` it is **generative**: the detail it restores is invented, not recovered,
+so SNR against a clean reference is the wrong yardstick and it is absent from the table
+above. It works over a fixed **8 s window** slid with a 4 s hop and 2 s-trimmed overlap-add,
+exactly as upstream's `inference_long.py`.
+
+At 1.7 GB (a single fp32 graph for the WavLM encoder + adapter, plus a 455 MB vocoder) it is
+the largest engine here. Verified against the upstream torch pipeline on real speech at
+correlation **0.99999988** (~0.6× realtime on CPU).
+
+```python
+sr = load_sr("unipase")                    # fp32, 1.7 GB + 455 MB
+sr = load_sr("unipase", precision="fp16")  # ~45% smaller download, corr 0.99993 vs fp32
+```
+
+A near-lossless **fp16** variant (`precision="fp16"`) cuts the download ~45% (2.18 GB →
+1.19 GB) at end-to-end correlation **0.99993** vs fp32, keeping the conv front-end and every
+LayerNorm in fp32 and casting only the heavy weight MatMuls. It is a smaller download, **not**
+faster on CPU — onnxruntime has no native fp16 kernels and up-casts at runtime (~15% slower
+here). **int8 is not offered.** A per-layer sensitivity sweep
+(`conversion/export_unipase.py --sweep`) confirms the 24-layer WavLM-Large loses too much to
+dynamic quantization: quantizing all FFN + projection weights drops end-to-end correlation to
+~0.86 (the naive whole-graph value is ~0.85, near-identical), and even a single quantized
+layer falls below 0.999. The widest int8 set that holds ≥0.999 — the q/k/v projections of six
+middle layers — barely shrinks the graph (1721 → 1646 MB) with no speed-up, so no int8 encoder
+is published. This is the same depth-driven degradation that makes `callenhancer` default to
+fp32.
+
+Upstream's optional packet-loss concealment (PLC) and 48 kHz PostNet bandwidth extension
+are not shipped — PLC needs a data-dependent CNN-output mask that does not trace, and the
+PostNet depends on `espnet2`. Both are candidate follow-ups.
 
 ## metadenoiser
 
