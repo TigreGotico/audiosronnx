@@ -22,7 +22,7 @@ from typing import Dict, List, Optional, Tuple, Type
 
 import numpy as np
 
-from .audio import AudioLike, read_wav, to_float32_mono, write_wav
+from .audio import AudioLike, load_audio, write_wav
 
 #: Every super-resolution engine here produces 48 kHz output.
 OUTPUT_SAMPLE_RATE = 48000
@@ -113,19 +113,14 @@ class SRModel(abc.ABC):
         """Upscale audio to 48 kHz. The core low-level primitive.
 
         Args:
-            audio: a path to an audio file, raw ``int16`` PCM bytes, or a numpy array.
-            sample_rate: sample rate of ``audio``. Required for arrays/bytes; ignored
-                (read from the file) when ``audio`` is a path.
+            audio: a path to an audio file, WAV bytes, raw ``int16`` PCM bytes, or a numpy array.
+            sample_rate: sample rate of ``audio``. Required for arrays and raw PCM; ignored
+                (read from the header) for a path or WAV bytes.
 
         Returns:
             ``(out, 48000)`` where ``out`` is a mono float32 numpy array in [-1, 1].
         """
-        if isinstance(audio, str):
-            x, sr = read_wav(audio)
-        else:
-            if sample_rate is None:
-                raise ValueError("sample_rate is required when audio is not a file path")
-            x, sr = to_float32_mono(audio), int(sample_rate)
+        x, sr = load_audio(audio, sample_rate)
 
         if x.size == 0:
             return np.zeros(0, dtype=np.float32), self.output_sample_rate
@@ -189,12 +184,7 @@ class Denoiser(abc.ABC):
         self, audio: AudioLike, sample_rate: Optional[int] = None
     ) -> Tuple[np.ndarray, int]:
         """Denoise audio. Returns ``(out, rate)`` at the model's native rate."""
-        if isinstance(audio, str):
-            x, sr = read_wav(audio)
-        else:
-            if sample_rate is None:
-                raise ValueError("sample_rate is required when audio is not a file path")
-            x, sr = to_float32_mono(audio), int(sample_rate)
+        x, sr = load_audio(audio, sample_rate)
         if x.size == 0:
             return np.zeros(0, dtype=np.float32), self.input_sample_rate
         out = self._denoise_array(np.ascontiguousarray(x, dtype=np.float32), sr)
